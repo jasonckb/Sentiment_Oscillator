@@ -399,7 +399,7 @@ else:
     st.write("Nil")
 
 # Create a grid of 20 columns
-cols = st.columns(20)
+cols = st.columns(15)
 
 # Function to determine button color
 def get_button_color(value):
