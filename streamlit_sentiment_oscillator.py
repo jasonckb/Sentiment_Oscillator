@@ -405,10 +405,6 @@ else:
 if 'clicked_symbol' not in st.session_state:
     st.session_state.clicked_symbol = None
 
-# Create a grid of 15 columns
-# Create a grid of 15 columns
-cols = st.columns(15)
-
 # Custom CSS for button styling
 st.markdown("""
 <style>
@@ -422,43 +418,57 @@ div.stButton > button:first-child {
 </style>
 """, unsafe_allow_html=True)
 
+# Create a container for the grid
+grid_container = st.container()
+
 # Display the sorted sentiment data in a grid
-for i, (symbol, value) in enumerate(sorted_sentiment.items()):
-    col = cols[i % 15]
-    
-    # Handle potential NaN or infinite values
-    if pd.isna(value) or not np.isfinite(value):
-        button_color = "rgb(128, 128, 128)"  # Gray for invalid values
-        text_color = "white"
-        display_value = 'N/A'
-    else:
-        button_color = get_button_color(value)
-        text_color = get_text_color(value)
-        display_value = f'{value:.2f}'
-    
-    # Create a unique key for each button
-    button_key = f"btn_{symbol}"
-    
-    # Apply custom styling to the button
-    custom_css = f"""
-    <style>
-    div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
-        background-color: {button_color};
-        color: {text_color};
-    }}
-    </style>
-    """
-    st.markdown(custom_css, unsafe_allow_html=True)
-    
-    # Create the button
-    if col.button(f"{symbol}\n{display_value}", key=button_key):
-        st.subheader(f"Detailed Chart for {symbol}")
-        try:
-            with st.spinner(f"Loading chart for {symbol}..."):
-                chart = plot_chart(symbol)
-                st.plotly_chart(chart, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error generating chart for {symbol}: {str(e)}")
+num_columns = 15
+num_rows = (len(sorted_sentiment) + num_columns - 1) // num_columns
+
+for row in range(num_rows):
+    cols = grid_container.columns(num_columns)
+    for col in range(num_columns):
+        index = row * num_columns + col
+        if index < len(sorted_sentiment):
+            symbol, value = list(sorted_sentiment.items())[index]
+            
+            # Handle potential NaN or infinite values
+            if pd.isna(value) or not np.isfinite(value):
+                button_color = "rgb(128, 128, 128)"  # Gray for invalid values
+                text_color = "white"
+                display_value = 'N/A'
+            else:
+                button_color = get_button_color(value)
+                text_color = get_text_color(value)
+                display_value = f'{value:.2f}'
+            
+            # Create a unique key for each button
+            button_key = f"btn_{symbol}_{row}_{col}"
+            
+            # Apply custom styling to the button
+            custom_css = f"""
+            <style>
+            div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
+                background-color: {button_color};
+                color: {text_color};
+            }}
+            </style>
+            """
+            st.markdown(custom_css, unsafe_allow_html=True)
+            
+            # Create the button
+            if cols[col].button(f"{symbol}\n{display_value}", key=button_key):
+                st.session_state.clicked_symbol = symbol
+
+# Display the chart for the clicked symbol
+if st.session_state.clicked_symbol:
+    st.subheader(f"Detailed Chart for {st.session_state.clicked_symbol}")
+    try:
+        with st.spinner(f"Loading chart for {st.session_state.clicked_symbol}..."):
+            chart = plot_chart(st.session_state.clicked_symbol)
+            st.plotly_chart(chart, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error generating chart for {st.session_state.clicked_symbol}: {str(e)}")
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
