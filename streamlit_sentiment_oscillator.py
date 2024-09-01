@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 
-def get_stock_data(ticker, period="1y"):
+def get_stock_data(ticker, period="2y"):
     stock = yf.Ticker(ticker)
     data = stock.history(period=period)
     return data.dropna()
@@ -181,40 +181,44 @@ def calculate_sentiment_oscillator(data):
     return sentiment
 
 def plot_chart(ticker):
-    data = get_stock_data(ticker, period="1y")
+    data = get_stock_data(ticker, period="2y")
+    one_year_ago = data.index[-1] - pd.DateOffset(years=1)
+    data_to_plot = data.loc[one_year_ago:]
     sentiment = calculate_sentiment_oscillator(data)
+    sentiment_to_plot = sentiment.loc[one_year_ago:]
     
     # Calculate EMAs
-    ema20 = data['Close'].ewm(span=20, adjust=False).mean()
-    ema50 = data['Close'].ewm(span=50, adjust=False).mean()
-    ema200 = data['Close'].ewm(span=200, adjust=False).mean()
+    ema20 = data_to_plot['Close'].ewm(span=20, adjust=False).mean()
+    ema50 = data_to_plot['Close'].ewm(span=50, adjust=False).mean()
+    ema200 = data_to_plot['Close'].ewm(span=200, adjust=False).mean()
     
     # Calculate Volume Profile
-    volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data)
+    volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data_to_plot)
     
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.1, row_heights=[0.7, 0.3])
     
     # Candlestick chart
     fig.add_trace(go.Candlestick(
-        x=data.index,
-        open=data['Open'],
-        high=data['High'],
-        low=data['Low'],
-        close=data['Close'],
+        x=data_to_plot.index,
+        open=data_to_plot['Open'],
+        high=data_to_plot['High'],
+        low=data_to_plot['Low'],
+        close=data_to_plot['Close'],
         name='Price',
         increasing_line_color='dodgerblue',
         decreasing_line_color='red'
     ), row=1, col=1)
 
     # Add EMA lines
-    fig.add_trace(go.Scatter(x=data.index, y=ema20, name='EMA 20', line=dict(color='blue', width=1)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=data.index, y=ema50, name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=data.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema20, name='EMA 20', line=dict(color='blue', width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema50, name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
 
     # Calculate the position for price annotations
-    first_date = data.index[0]
-    last_date = data.index[-1]
+    first_date = data_to_plot.index[0]
+    last_date = data_to_plot.index[-1]
+    mid_date = first_date + (last_date - first_date) / 2
     annotation_x = last_date + pd.Timedelta(days=2)
 
     # Add EMA annotations
@@ -236,21 +240,27 @@ def plot_chart(ticker):
         xaxis='x2'
     ), row=1, col=1)
 
-    # Add POC line (red)
+    # Add POC line (red) and annotation
     fig.add_shape(type="line", x0=first_date, x1=last_date, y0=poc_price, y1=poc_price,
                   line=dict(color="red", width=2), row=1, col=1)
-    fig.add_annotation(x=first_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
+
+    # Add Value Area lines (purple) with labels in the middle
+    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_low, y1=value_area_low,
+                  line=dict(color="purple", width=2), row=1, col=1)
+    fig.add_annotation(x=mid_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
+                       showarrow=False, xanchor="center", font=dict(size=10, color="purple"), row=1, col=1)
 
     fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_high, y1=value_area_high,
                   line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_annotation(x=first_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+    fig.add_annotation(x=mid_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
+                       showarrow=False, xanchor="center", font=dict(size=10, color="purple"), row=1, col=1)
 
     # Sentiment Oscillator
     fig.add_trace(go.Scatter(
-        x=sentiment.index,
-        y=sentiment, 
+        x=sentiment_to_plot.index,
+        y=sentiment_to_plot, 
         line=dict(color='purple', width=2),
         name='Sentiment Oscillator'
     ), row=2, col=1)
@@ -258,16 +268,16 @@ def plot_chart(ticker):
     # Add filled areas for bullish (blue) and bearish (red) sentiment
     fig.add_traces([
         go.Scatter(
-            x=sentiment.index,
-            y=sentiment.where(sentiment > 50, 50), 
+            x=sentiment_to_plot.index,
+            y=sentiment_to_plot.where(sentiment_to_plot > 50, 50), 
             fill='tozeroy',
             fillcolor='rgba(0,0,255,0.2)', 
             line=dict(color='rgba(0,0,0,0)'),
             name='Bullish'
         ),
         go.Scatter(
-            x=sentiment.index,
-            y=sentiment.where(sentiment < 50, 50), 
+            x=sentiment_to_plot.index,
+            y=sentiment_to_plot.where(sentiment_to_plot < 50, 50), 
             fill='tozeroy',
             fillcolor='rgba(255,0,0,0.2)', 
             line=dict(color='rgba(0,0,0,0)'),
@@ -309,9 +319,6 @@ def plot_chart(ticker):
     )
     
     return fig
-
-# Streamlit app
-import streamlit as st
 
 # Define the US and HK symbols
 us_symbols = [
@@ -358,7 +365,7 @@ def load_data(symbols):
     data = {}
     for symbol in symbols:
         try:
-            stock_data = get_stock_data(symbol)
+            stock_data = get_stock_data(symbol, period="2y")
             sentiment = calculate_sentiment_oscillator(stock_data)
             data[symbol] = sentiment.iloc[-1]
         except Exception as e:
@@ -367,7 +374,6 @@ def load_data(symbols):
 
 with st.spinner("Loading data..."):
     sentiment_data = load_data(symbols)
-
 # Sort the sentiment data
 sorted_sentiment = sentiment_data.sort_values(ascending=False)
 
@@ -390,18 +396,15 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
-# Create a grid of 10 columns
-col1, col2, col3, col4, col5, col6, col7, col8, col9, col10 = st.columns(10)
-cols = [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10]
+# Create a grid of 20 columns
+cols = st.columns(20)
 
-# Function to determine cell color
-def get_cell_color(value):
+# Function to determine button color
+def get_button_color(value):
     if value > 50:
-        return "lightgreen"
-    elif value < 50:
-        return "lightpink"
+        return f"rgba(0, 255, 0, {min(1, (value - 50) / 50)})"
     else:
-        return "lightgray"
+        return f"rgba(255, 0, 0, {min(1, (50 - value) / 50)})"
 
 # Function to determine text color
 def get_text_color(value):
@@ -412,15 +415,18 @@ def get_text_color(value):
     else:
         return "black"
 
+
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
-    col = cols[i % 10]
-    cell_color = get_cell_color(value)
+    col = cols[i % 20]
+    button_color = get_button_color(value)
     text_color = get_text_color(value)
+    button_style = f"background-color: {button_color}; color: {text_color}; border: none; padding: 5px; margin: 2px; border-radius: 5px;"
     if col.button(
         f'{symbol}\n{value:.2f}',
         key=f'btn_{symbol}',
-        help=f'Click to view detailed chart for {symbol}'
+        help=f'Click to view detailed chart for {symbol}',
+        style=button_style
     ):
         st.subheader(f"Detailed Chart for {symbol}")
         with st.spinner(f"Loading chart for {symbol}..."):
