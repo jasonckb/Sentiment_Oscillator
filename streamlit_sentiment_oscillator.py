@@ -429,6 +429,13 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 15]
     button_color = get_button_color(value)
     text_color = get_text_color(value)
+    
+    # Handle NaN and infinite values
+    if pd.isna(value) or not np.isfinite(value):
+        display_value = 'N/A'
+    else:
+        display_value = f'{value:.2f}'
+    
     button_html = f"""
     <button style="
         background-color: {button_color};
@@ -444,7 +451,7 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
         border-radius: 5px;
         width: 100%;
     ">
-        {symbol}<br>{value:.2f if pd.notna(value) and np.isfinite(value) else 'N/A'}
+        {symbol}<br>{display_value}
     </button>
     """
     if col.markdown(button_html, unsafe_allow_html=True):
@@ -461,3 +468,4 @@ if st.button("Refresh Data"):
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
