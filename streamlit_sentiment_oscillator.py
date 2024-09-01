@@ -214,6 +214,12 @@ def plot_chart(ticker):
     ema_20 = calculate_ema(data, 20)
     ema_50 = calculate_ema(data, 50)
     ema_200 = calculate_ema(data, 200)
+
+    # Calculate the position for price annotations
+    first_date = data.index[0]
+    last_date = data.index[-1]
+    annotation_x = last_date + pd.Timedelta(days=2)  # 2 days after the last candle
+    mid_date = first_date + (last_date - first_date) / 2  # Middle of the date range
             
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.1, row_heights=[0.7, 0.3])
