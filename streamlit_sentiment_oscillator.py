@@ -165,6 +165,9 @@ def calculate_volume_profile(data, bins=40):
     
     return volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high
 
+def calculate_ema(data, period):
+    return data['Close'].ewm(span=period, adjust=False).mean()
+
 def calculate_sentiment_oscillator(data):
     rsi = calculate_rsi(data)
     stoch = calculate_stochastic(data)
