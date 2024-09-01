@@ -192,14 +192,8 @@ def plot_chart(ticker):
     ema200 = data['Close'].ewm(span=200, adjust=False).mean()
     
     # Calculate Volume Profile
-    price_range = data['Close'].max() - data['Close'].min()
-    bins = 50
-    bin_size = price_range / bins
-    price_bins = pd.cut(data['Close'], bins=bins)
-    volume_profile = data.groupby(price_bins)['Volume'].sum()
-    bin_centers = [(i.left + i.right) / 2 for i in volume_profile.index]
+    volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data)
     
-    # Create subplots
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.1, row_heights=[0.7, 0.3])
     
@@ -210,14 +204,29 @@ def plot_chart(ticker):
         high=data['High'],
         low=data['Low'],
         close=data['Close'],
-        name='Price'
+        name='Price',
+        increasing_line_color='dodgerblue',
+        decreasing_line_color='red'
     ), row=1, col=1)
-    
+
     # Add EMA lines
     fig.add_trace(go.Scatter(x=data.index, y=ema20, name='EMA 20', line=dict(color='blue', width=1)), row=1, col=1)
     fig.add_trace(go.Scatter(x=data.index, y=ema50, name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
     fig.add_trace(go.Scatter(x=data.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
-    
+
+    # Calculate the position for price annotations
+    first_date = data.index[0]
+    last_date = data.index[-1]
+    annotation_x = last_date + pd.Timedelta(days=2)
+
+    # Add EMA annotations
+    fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"20 EMA: {ema20.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="blue"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"50 EMA: {ema50.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="orange"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=ema200.iloc[-1], text=f"200 EMA: {ema200.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
+
     # Add Volume Profile
     fig.add_trace(go.Bar(
         x=volume_profile.values,
@@ -225,9 +234,27 @@ def plot_chart(ticker):
         orientation='h',
         name='Volume Profile',
         marker_color='rgba(200, 200, 200, 0.5)',
+        width=bin_size,
         xaxis='x2'
     ), row=1, col=1)
-    
+
+    # Add POC line (red)
+    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=poc_price, y1=poc_price,
+                  line=dict(color="red", width=2), row=1, col=1)
+    fig.add_annotation(x=first_date, y=poc_price, text=f"POC: {poc_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
+
+    # Add Value Area lines (purple) with labels
+    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_low, y1=value_area_low,
+                  line=dict(color="purple", width=2), row=1, col=1)
+    fig.add_annotation(x=first_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+
+    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_high, y1=value_area_high,
+                  line=dict(color="purple", width=2), row=1, col=1)
+    fig.add_annotation(x=first_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+
     # Sentiment Oscillator
     fig.add_trace(go.Scatter(
         x=sentiment.index,
@@ -236,10 +263,30 @@ def plot_chart(ticker):
         name='Sentiment Oscillator'
     ), row=2, col=1)
     
+    # Add filled areas for bullish (blue) and bearish (red) sentiment
+    fig.add_traces([
+        go.Scatter(
+            x=sentiment.index,
+            y=sentiment.where(sentiment > 50, 50), 
+            fill='tozeroy',
+            fillcolor='rgba(0,0,255,0.2)', 
+            line=dict(color='rgba(0,0,0,0)'),
+            name='Bullish'
+        ),
+        go.Scatter(
+            x=sentiment.index,
+            y=sentiment.where(sentiment < 50, 50), 
+            fill='tozeroy',
+            fillcolor='rgba(255,0,0,0.2)', 
+            line=dict(color='rgba(0,0,0,0)'),
+            name='Bearish'
+        )
+    ], rows=[2,2], cols=[1,1])
+    
     # Add reference lines for oscillator
-    fig.add_hline(y=75, line_dash="dash", line_color="red", row=2, col=1)
+    fig.add_hline(y=75, line_dash="dash", line_color="green", row=2, col=1)
     fig.add_hline(y=50, line_dash="dash", line_color="gray", row=2, col=1)
-    fig.add_hline(y=25, line_dash="dash", line_color="green", row=2, col=1)
+    fig.add_hline(y=25, line_dash="dash", line_color="red", row=2, col=1)
     
     fig.update_layout(
         title=f"{ticker} - Price Chart and Sentiment Oscillator",
@@ -248,14 +295,28 @@ def plot_chart(ticker):
         xaxis_rangeslider_visible=False,
         height=800,
         width=1200,
-        showlegend=False  # Hide legend
+        showlegend=False,
+        xaxis=dict(
+            showline=True,
+            showgrid=True,
+            tickformat="%Y-%m-%d",
+            type="date"
+        ),
     )
     
     fig.update_yaxes(title_text="Price", row=1, col=1)
     fig.update_yaxes(title_text="Sentiment Oscillator", range=[0, 100], row=2, col=1)
     
+    # Set x-axis to show only trading days
+    fig.update_xaxes(
+        rangebreaks=[
+            dict(bounds=["sat", "mon"]),
+            dict(values=["2023-12-25", "2024-01-01"])
+        ],
+        range=[first_date, last_date]
+    )
+    
     return fig
-
 # Streamlit app
 st.set_page_config(layout="wide")
 st.title("Stock Sentiment Oscillator Dashboard")
