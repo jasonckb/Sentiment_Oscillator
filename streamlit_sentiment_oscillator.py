@@ -364,6 +364,39 @@ else:
     symbols = us_symbols
 
 # Main app
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
+
+# ... [Keep all the existing functions]
+
+# Streamlit app
+st.set_page_config(layout="wide")
+st.title("Stock Sentiment Oscillator Dashboard")
+
+# Define the US and HK symbols
+us_symbols = [
+    # ... [Keep the existing US symbols]
+]
+
+hk_symbols = [
+    # ... [Keep the existing HK symbols]
+]
+
+# Sidebar
+st.sidebar.header("Stock Universe Selection")
+market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
+
+if market == "HK Stock":
+    symbols = hk_symbols
+else:
+    symbols = us_symbols
+
+# Main app
 @st.cache_data
 def load_data(symbols):
     data = {}
@@ -401,10 +434,6 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
-# Initialize session state to store the clicked symbol
-if 'clicked_symbol' not in st.session_state:
-    st.session_state.clicked_symbol = None
-
 # Custom CSS for button styling
 st.markdown("""
 <style>
@@ -421,47 +450,43 @@ div.stButton > button:first-child {
 # Create a container for the grid
 grid_container = st.container()
 
+# Function to create a button for a symbol
+def create_symbol_button(symbol, value):
+    if pd.isna(value) or not np.isfinite(value):
+        button_color = "rgb(128, 128, 128)"  # Gray for invalid values
+        text_color = "white"
+        display_value = 'N/A'
+    else:
+        button_color = get_button_color(value)
+        text_color = get_text_color(value)
+        display_value = f'{value:.2f}'
+    
+    button_key = f"btn_{symbol}"
+    
+    custom_css = f"""
+    <style>
+    div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
+        background-color: {button_color};
+        color: {text_color};
+    }}
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+    
+    return st.button(f"{symbol}\n{display_value}", key=button_key)
+
 # Display the sorted sentiment data in a grid
 num_columns = 15
-num_rows = (len(sorted_sentiment) + num_columns - 1) // num_columns
+symbols_list = list(sorted_sentiment.items())
 
-for row in range(num_rows):
+for i in range(0, len(symbols_list), num_columns):
     cols = grid_container.columns(num_columns)
-    for col in range(num_columns):
-        index = row * num_columns + col
-        if index < len(sorted_sentiment):
-            symbol, value = list(sorted_sentiment.items())[index]
-            
-            # Handle potential NaN or infinite values
-            if pd.isna(value) or not np.isfinite(value):
-                button_color = "rgb(128, 128, 128)"  # Gray for invalid values
-                text_color = "white"
-                display_value = 'N/A'
-            else:
-                button_color = get_button_color(value)
-                text_color = get_text_color(value)
-                display_value = f'{value:.2f}'
-            
-            # Create a unique key for each button
-            button_key = f"btn_{symbol}_{row}_{col}"
-            
-            # Apply custom styling to the button
-            custom_css = f"""
-            <style>
-            div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
-                background-color: {button_color};
-                color: {text_color};
-            }}
-            </style>
-            """
-            st.markdown(custom_css, unsafe_allow_html=True)
-            
-            # Create the button
-            if cols[col].button(f"{symbol}\n{display_value}", key=button_key):
-                st.session_state.clicked_symbol = symbol
+    for j, (symbol, value) in enumerate(symbols_list[i:i+num_columns]):
+        if cols[j].button(f"{symbol}\n{value:.2f}", key=f"btn_{symbol}"):
+            st.session_state.clicked_symbol = symbol
 
 # Display the chart for the clicked symbol
-if st.session_state.clicked_symbol:
+if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
     st.subheader(f"Detailed Chart for {st.session_state.clicked_symbol}")
     try:
         with st.spinner(f"Loading chart for {st.session_state.clicked_symbol}..."):
