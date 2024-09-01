@@ -207,12 +207,11 @@ def plot_chart(ticker):
     sentiment = calculate_sentiment_oscillator(data)
     sentiment_to_plot = sentiment.loc[one_year_ago:]
     
-    ema20 = data_to_plot['Close'].ewm(span=20, adjust=False).mean()
-    ema50 = data_to_plot['Close'].ewm(span=50, adjust=False).mean()
-    ema200 = data_to_plot['Close'].ewm(span=200, adjust=False).mean()
-    
-    volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data_to_plot)
-    
+    # Calculate EMAs
+    ema_20 = calculate_ema(data, 20)
+    ema_50 = calculate_ema(data, 50)
+    ema_200 = calculate_ema(data, 200)
+            
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.1, row_heights=[0.7, 0.3])
     
@@ -227,26 +226,30 @@ def plot_chart(ticker):
         decreasing_line_color='red'
     ), row=1, col=1)
 
-    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema20, name='EMA 20', line=dict(color='blue', width=1)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema50, name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
+    # Add EMA lines
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema_20.iloc[-1], y1=ema_20.iloc[-1],
+                  line=dict(color="gray", width=1, dash="dash"))
+    fig.add_annotation(x=annotation_x, y=ema_20.iloc[-1], text=f"20 EMA: {ema_20.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=12, color="gray"))
 
-    last_date = data_to_plot.index[-1]
-    annotation_x = last_date + pd.Timedelta(days=2)
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema_50.iloc[-1], y1=ema_50.iloc[-1],
+                  line=dict(color="gray", width=2, dash="dash"))
+    fig.add_annotation(x=annotation_x, y=ema_50.iloc[-1], text=f"50 EMA: {ema_50.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=12, color="gray"))
 
-    fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"EMA20: {ema20.iloc[-1]:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="blue"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"EMA50: {ema50.iloc[-1]:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="orange"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=ema200.iloc[-1], text=f"EMA200: {ema200.iloc[-1]:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="green"), row=1, col=1)
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema_200.iloc[-1], y1=ema_200.iloc[-1],
+                  line=dict(color="gray", width=3, dash="dash"))
+    fig.add_annotation(x=annotation_x, y=ema_200.iloc[-1], text=f"200 EMA: {ema_200.iloc[-1]:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=12, color="gray"))
 
+    # Add current price annotation
+    current_price = data['Close'].iloc[-1]
+    fig.add_annotation(x=annotation_x, y=current_price, text=f"Current Price: {current_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=14, color="black"))
+
+    # Calculate and add volume profile
+    volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data)
+    max_volume = volume_profile.max()
     fig.add_trace(go.Bar(
         x=volume_profile.values,
         y=bin_centers,
@@ -255,14 +258,26 @@ def plot_chart(ticker):
         marker_color='rgba(200, 200, 200, 0.5)',
         width=bin_size,
         xaxis='x2'
-    ), row=1, col=1)
+    ))
 
-    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=poc_price, y1=poc_price,
-                  line=dict(color="green", width=2), row=1, col=1)
-    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=value_area_high, y1=value_area_high,
-                  line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=value_area_low, y1=value_area_low,
-                  line=dict(color="purple", width=2), row=1, col=1)
+    # Add POC line (red)
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=poc_price, y1=poc_price,
+                  line=dict(color="red", width=4))
+    fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=12, color="red"))
+
+    # Add Value Area lines (purple) with labels above and below the lines
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_low, y1=value_area_low,
+                  line=dict(color="purple", width=2))
+    fig.add_annotation(x=mid_date, y=value_area_low, text=f"Value at Low: {value_area_low:.2f}",
+                       showarrow=False, xanchor="center", yanchor="top", font=dict(size=12, color="purple"),
+                       yshift=-5)  # Shift the label 5 pixels below the line
+
+    fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_high, y1=value_area_high,
+                  line=dict(color="purple", width=2))
+    fig.add_annotation(x=mid_date, y=value_area_high, text=f"Value at High: {value_area_high:.2f}",
+                       showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=12, color="purple"),
+                       yshift=5)  # Shift the label 5 pixels above the line
 
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
