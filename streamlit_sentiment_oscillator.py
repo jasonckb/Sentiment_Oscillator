@@ -182,8 +182,8 @@ def calculate_sentiment_oscillator(data):
     
 # Function to determine button color
 def get_button_color(value):
-    if pd.isna(value):
-        return "rgb(128, 128, 128)"  # Gray for NaN values
+    if pd.isna(value) or not np.isfinite(value):
+        return "rgb(128, 128, 128)"  # Gray for NaN or infinity values
     value = max(0, min(100, value))  # Clamp value between 0 and 100
     if value > 50:
         green = int(255 * (value - 50) / 50)
@@ -193,10 +193,9 @@ def get_button_color(value):
         return f"rgb({red}, 0, 0)"
 
 # Function to determine text color
-
 def get_text_color(value):
-    if pd.isna(value):
-        return "white"  # White text for NaN values
+    if pd.isna(value) or not np.isfinite(value):
+        return "white"  # White text for NaN or infinity values
     value = max(0, min(100, value))  # Clamp value between 0 and 100
     if value > 75:
         return "red"
@@ -204,6 +203,7 @@ def get_text_color(value):
         return "blue"
     else:
         return "black"
+        
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
     one_year_ago = data.index[-1] - pd.DateOffset(years=1)
@@ -420,12 +420,6 @@ else:
 # Create a grid of 15 columns
 cols = st.columns(15)
 
-# Function to determine button color
-def get_button_color(value):
-    if value > 50:
-        return f"rgb(0, {min(255, int(255 * (value - 50) / 50))}, 0)"
-    else:
-        return f"rgb({min(255, int(255 * (50 - value) / 50))}, 0, 0)"
 
 # Function to determine text color
 def get_text_color(value):
@@ -442,7 +436,7 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     button_color = get_button_color(value)
     text_color = get_text_color(value)
     if col.button(
-        f'{symbol}\n{value:.2f}' if not pd.isna(value) else f'{symbol}\nN/A',
+        f'{symbol}\n{value:.2f}' if pd.notna(value) and np.isfinite(value) else f'{symbol}\nN/A',
         key=f'btn_{symbol}',
         help=f'Click to view detailed chart for {symbol}'
     ):
