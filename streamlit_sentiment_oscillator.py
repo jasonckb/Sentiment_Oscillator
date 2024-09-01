@@ -346,7 +346,6 @@ def plot_chart(ticker):
     
     return fig
 
-
 # Define the US and HK symbols
 us_symbols = [
     '^NDX', '^GSPC', 'AAPL', 'MSFT', 'AMZN', 'NVDA', 'GOOG', 'META', 'TSLA', 'JPM',
@@ -390,13 +389,18 @@ def main():
         for symbol in symbols:
             try:
                 stock_data = get_stock_data(symbol, period="2y")
-                sentiment = calculate_sentiment_oscillator(stock_data)
-                data[symbol] = {
-                    'sentiment': sentiment.iloc[-1],
-                    'last_close': stock_data['Close'].iloc[-1],
-                    'last_date': stock_data.index[-1],
-                    'prev_sentiment': sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
-                }
+                if not stock_data.empty:
+                    sentiment = calculate_sentiment_oscillator(stock_data)
+                    latest_sentiment = sentiment.iloc[-1]
+                    prev_sentiment = sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
+                    data[symbol] = {
+                        'sentiment': latest_sentiment,
+                        'last_close': stock_data['Close'].iloc[-1],
+                        'last_date': stock_data.index[-1],
+                        'prev_sentiment': prev_sentiment
+                    }
+                else:
+                    raise ValueError(f"No data available for {symbol}")
             except Exception as e:
                 st.warning(f"Error loading data for {symbol}: {e}")
                 data[symbol] = {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
