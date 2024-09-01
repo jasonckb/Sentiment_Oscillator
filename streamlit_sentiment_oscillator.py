@@ -409,10 +409,18 @@ with st.spinner("Loading data..."):
 sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
 # Calculate buy and sell signals
-yesterday_sentiment = sentiment_data.shift(1)
-buy_signals = sorted_sentiment[(yesterday_sentiment < 50) & (sorted_sentiment >= 50)]
-sell_signals = sorted_sentiment[(yesterday_sentiment >= 50) & (sorted_sentiment < 50)]
+yesterday_sentiment = sentiment_data['sentiment'].shift(1)
+buy_signals = sorted_sentiment[(yesterday_sentiment < 50) & (sorted_sentiment['sentiment'] >= 50)]
+sell_signals = sorted_sentiment[(yesterday_sentiment >= 50) & (sorted_sentiment['sentiment'] < 50)]
 
+# Display buy and sell signals
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("Stocks with Buy Signal:")
+    st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
+with col2:
+    st.subheader("Stocks with Sell Signal:")
+    st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
 # Display buy and sell signals
 col1, col2 = st.columns(2)
 with col1:
