@@ -401,34 +401,52 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
+# Initialize session state to store the clicked symbol
+if 'clicked_symbol' not in st.session_state:
+    st.session_state.clicked_symbol = None
+
 # Create a grid of 15 columns
 cols = st.columns(15)
 
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 15]
-    button_color = get_button_color(value)
-    text_color = get_text_color(value)
-    if col.button(f'{symbol}\n{value:.2f}', key=f'btn_{symbol}', 
-                  help=f'Click to view detailed chart for {symbol}'):
+    
+    # Handle potential NaN or infinite values
+    if pd.isna(value) or not np.isfinite(value):
+        button_color = "rgb(128, 128, 128)"  # Gray for invalid values
+        text_color = "white"
+        display_value = 'N/A'
+    else:
+        button_color = get_button_color(value)
+        text_color = get_text_color(value)
+        display_value = f'{value:.2f}'
+    
+    button_html = f"""
+    <button style="
+        background-color: {button_color};
+        color: {text_color};
+        border: none;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+        width: 100%;
+    " onclick="this.closest('form').requestSubmit()">
+        {symbol}<br>{display_value}
+    </button>
+    """
+    
+    # Use a unique key for each button to avoid conflicts
+    if col.markdown(button_html, unsafe_allow_html=True):
         st.session_state.clicked_symbol = symbol
 
-# Display custom CSS for button styling
-st.markdown("""
-<style>
-div.stButton > button:first-child {
-    background-color: var(--button-color);
-    color: var(--text-color);
-    height: auto;
-    padding: 10px 5px;
-    white-space: normal;
-    word-wrap: break-word;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # Display the chart for the clicked button
-if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
+if st.session_state.clicked_symbol:
     st.subheader(f"Detailed Chart for {st.session_state.clicked_symbol}")
     try:
         with st.spinner(f"Loading chart for {st.session_state.clicked_symbol}..."):
@@ -440,17 +458,9 @@ if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
 # Add a button to refresh the data
 if st.button("Refresh Data"):
     st.cache_data.clear()
-    if 'clicked_symbol' in st.session_state:
-        del st.session_state.clicked_symbol
+    st.session_state.clicked_symbol = None
     st.experimental_rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-​​​​​​​​​​​​​​​​
-
-
-
-
-
