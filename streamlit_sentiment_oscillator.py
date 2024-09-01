@@ -499,9 +499,23 @@ def main():
                 text_color = get_text_color(sentiment_value)
                 display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
                 
+                button_style = f"""
+                    <style>
+                    div[data-testid="stButton"] > button:first-child[key="btn_{symbol}"] {{
+                        background-color: {button_color};
+                        color: {text_color};
+                        height: auto;
+                        padding: 5px 2px;
+                        white-space: normal;
+                        word-wrap: break-word;
+                        font-size: 12px;
+                    }}
+                    </style>
+                """
+                st.markdown(button_style, unsafe_allow_html=True)
+                
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
-
     # Display the chart for the clicked symbol
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
