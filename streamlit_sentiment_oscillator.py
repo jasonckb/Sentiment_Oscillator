@@ -219,22 +219,8 @@ def plot_chart(ticker):
     first_date = data.index[0]
     last_date = data.index[-1]
     annotation_x = last_date + pd.Timedelta(days=2)  # 2 days after the last candle
-    mid_date = first_date + (last_date - first_date) / 2  # Middle of the date range
-            
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                        vertical_spacing=0.1, row_heights=[0.7, 0.3])
+    mid_date = first_date + (last_date - first_date) / 2  # Middle of the date range         
     
-    fig.add_trace(go.Candlestick(
-        x=data_to_plot.index,
-        open=data_to_plot['Open'],
-        high=data_to_plot['High'],
-        low=data_to_plot['Low'],
-        close=data_to_plot['Close'],
-        name='Price',
-        increasing_line_color='dodgerblue',
-        decreasing_line_color='red'
-    ), row=1, col=1)
-
     # Add EMA lines
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema_20.iloc[-1], y1=ema_20.iloc[-1],
                   line=dict(color="gray", width=1, dash="dash"))
@@ -287,6 +273,20 @@ def plot_chart(ticker):
     fig.add_annotation(x=mid_date, y=value_area_high, text=f"Value at High: {value_area_high:.2f}",
                        showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=12, color="purple"),
                        yshift=5)  # Shift the label 5 pixels above the line
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                        vertical_spacing=0.1, row_heights=[0.7, 0.3])
+    
+    fig.add_trace(go.Candlestick(
+        x=data_to_plot.index,
+        open=data_to_plot['Open'],
+        high=data_to_plot['High'],
+        low=data_to_plot['Low'],
+        close=data_to_plot['Close'],
+        name='Price',
+        increasing_line_color='dodgerblue',
+        decreasing_line_color='red'
+    ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
