@@ -295,25 +295,47 @@ def plot_chart(ticker):
         name='Sentiment Oscillator'
     ), row=2, col=1)
     
+    # Add filled areas for bullish (blue) and bearish (red) sentiment
     fig.add_traces([
         go.Scatter(
             x=sentiment_to_plot.index,
             y=sentiment_to_plot.where(sentiment_to_plot > 50, 50), 
-            fill='tozeroy',
-            fillcolor='rgba(0,255,0,0.2)', 
+            fill='tonexty',
+            fillcolor='rgba(0,0,255,0.2)', 
             line=dict(color='rgba(0,0,0,0)'),
-            name='Bullish'
+            name='Bullish',
+            showlegend=False
+        ),
+        go.Scatter(
+            x=sentiment_to_plot.index,
+            y=np.full(len(sentiment_to_plot), 50),
+            fill='tonexty',
+            fillcolor='rgba(0,0,255,0.2)', 
+            line=dict(color='rgba(0,0,0,0)'),
+            name='Bullish Fill',
+            showlegend=False
         ),
         go.Scatter(
             x=sentiment_to_plot.index,
             y=sentiment_to_plot.where(sentiment_to_plot < 50, 50), 
-            fill='tozeroy',
+            fill='tonexty',
             fillcolor='rgba(255,0,0,0.2)', 
             line=dict(color='rgba(0,0,0,0)'),
-            name='Bearish'
+            name='Bearish',
+            showlegend=False
+        ),
+        go.Scatter(
+            x=sentiment_to_plot.index,
+            y=np.full(len(sentiment_to_plot), 50),
+            fill='tonexty',
+            fillcolor='rgba(255,0,0,0.2)', 
+            line=dict(color='rgba(0,0,0,0)'),
+            name='Bearish Fill',
+            showlegend=False
         )
-    ], rows=[2,2], cols=[1,1])
+    ], rows=[2,2,2,2], cols=[1,1,1,1])
     
+    # Add horizontal lines for sentiment levels
     fig.add_hline(y=75, line_dash="dash", line_color="green", row=2, col=1)
     fig.add_hline(y=50, line_dash="dash", line_color="gray", row=2, col=1)
     fig.add_hline(y=25, line_dash="dash", line_color="red", row=2, col=1)
