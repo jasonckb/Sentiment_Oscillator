@@ -248,12 +248,12 @@ def plot_chart(ticker):
         fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema.iloc[-1], y1=ema.iloc[-1],
                       line=dict(color=color, width=width, dash="dash"), row=1, col=1)
         fig.add_annotation(x=annotation_x, y=ema.iloc[-1], text=f"{name}: {ema.iloc[-1]:.2f}",
-                           showarrow=False, xanchor="left", font=dict(size=12, color=color), row=1, col=1)
+                           showarrow=False, xanchor="left", font=dict(size=10, color=color), row=1, col=1)
 
     # Add current price annotation
     current_price = data_to_plot['Close'].iloc[-1]
     fig.add_annotation(x=annotation_x, y=current_price, text=f"Current Price: {current_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=14, color="black"), row=1, col=1)
+                       showarrow=False, xanchor="left", font=dict(size=12, color="black"), row=1, col=1)
 
     # Calculate and add volume profile
     volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data_to_plot)
@@ -270,24 +270,24 @@ def plot_chart(ticker):
 
     # Add POC line (red)
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=poc_price, y1=poc_price,
-                  line=dict(color="red", width=4), row=1, col=1)
+                  line=dict(color="red", width=2), row=1, col=1)
     fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=12, color="red"), row=1, col=1)
+                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
 
     # Add Value Area lines (purple) with labels in the middle
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_low, y1=value_area_low,
                   line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_annotation(x=mid_date, y=value_area_low, text=f"Value at Low: {value_area_low:.2f}",
-                       showarrow=False, xanchor="center", yanchor="top", font=dict(size=12, color="purple"),
+    fig.add_annotation(x=mid_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
+                       showarrow=False, xanchor="center", yanchor="top", font=dict(size=10, color="purple"),
                        yshift=-5, row=1, col=1)
 
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_high, y1=value_area_high,
                   line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_annotation(x=mid_date, y=value_area_high, text=f"Value at High: {value_area_high:.2f}",
-                       showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=12, color="purple"),
+    fig.add_annotation(x=mid_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
+                       showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=10, color="purple"),
                        yshift=5, row=1, col=1)
 
-    # Add Sentiment Oscillator (keep this part unchanged)
+    # Add Sentiment Oscillator
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
         y=sentiment_to_plot, 
@@ -318,7 +318,7 @@ def plot_chart(ticker):
     fig.add_hline(y=50, line_dash="dash", line_color="gray", row=2, col=1)
     fig.add_hline(y=25, line_dash="dash", line_color="red", row=2, col=1)
     
-    # Update layout
+    # Update layout with adjusted margins and size
     fig.update_layout(
         title=f"{ticker} - Price Chart and Sentiment Oscillator",
         xaxis_title="Date",
@@ -326,6 +326,7 @@ def plot_chart(ticker):
         xaxis_rangeslider_visible=False,
         height=800,
         width=1200,
+        margin=dict(l=50, r=150, t=50, b=50),  # Increased right margin
         showlegend=False,
         xaxis=dict(
             showline=True,
