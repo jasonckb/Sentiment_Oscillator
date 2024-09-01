@@ -181,7 +181,11 @@ def calculate_sentiment_oscillator(data):
     lr = calculate_linear_regression(data)
     ms = calculate_market_structure(data)
     
-    sentiment = (rsi + stoch + cci + bbp + ma + supertrend + lr + ms) / 8
+    # Combine all indicators, filling NaN values with the previous valid value
+    combined = pd.concat([rsi, stoch, cci, bbp, ma, supertrend, lr, ms], axis=1)
+    combined = combined.ffill()
+    
+    sentiment = combined.mean(axis=1)
     return sentiment
 
 def get_button_color(value):
@@ -391,12 +395,14 @@ def main():
                 stock_data = get_stock_data(symbol, period="2y")
                 if not stock_data.empty:
                     sentiment = calculate_sentiment_oscillator(stock_data)
-                    latest_sentiment = sentiment.iloc[-1]
+                    # Ensure we're using the latest date for both price and sentiment
+                    latest_date = stock_data.index[-1]
+                    latest_sentiment = sentiment.loc[latest_date] if latest_date in sentiment.index else np.nan
                     prev_sentiment = sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
                     data[symbol] = {
                         'sentiment': latest_sentiment,
-                        'last_close': stock_data['Close'].iloc[-1],
-                        'last_date': stock_data.index[-1],
+                        'last_close': stock_data['Close'].loc[latest_date],
+                        'last_date': latest_date,
                         'prev_sentiment': prev_sentiment
                     }
                 else:
