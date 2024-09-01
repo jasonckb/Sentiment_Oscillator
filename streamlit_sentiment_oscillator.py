@@ -423,8 +423,18 @@ else:
 # Create a grid of 15 columns
 cols = st.columns(15)
 
-# Store the clicked button state
-clicked_symbol = None
+# Custom CSS for button styling
+st.markdown("""
+<style>
+div.stButton > button:first-child {
+    height: auto;
+    padding: 10px 5px;
+    white-space: normal;
+    word-wrap: break-word;
+    font-size: 14px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
@@ -440,38 +450,29 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
         text_color = get_text_color(value)
         display_value = f'{value:.2f}'
     
-    button_html = f"""
-    <button style="
+    # Create a unique key for each button
+    button_key = f"btn_{symbol}"
+    
+    # Apply custom styling to the button
+    custom_css = f"""
+    <style>
+    div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
         background-color: {button_color};
         color: {text_color};
-        border: none;
-        padding: 10px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 5px;
-        width: 100%;
-    ">
-        {symbol}<br>{display_value}
-    </button>
+    }}
+    </style>
     """
+    st.markdown(custom_css, unsafe_allow_html=True)
     
-    # Use a unique key for each button to avoid conflicts
-    if col.markdown(button_html, unsafe_allow_html=True, key=f"btn_{symbol}"):
-        clicked_symbol = symbol
-
-# Display the chart for the clicked button
-if clicked_symbol:
-    st.subheader(f"Detailed Chart for {clicked_symbol}")
-    try:
-        with st.spinner(f"Loading chart for {clicked_symbol}..."):
-            chart = plot_chart(clicked_symbol)
-            st.plotly_chart(chart, use_container_width=True)
-    except Exception as e:
-        st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+    # Create the button
+    if col.button(f"{symbol}\n{display_value}", key=button_key):
+        st.subheader(f"Detailed Chart for {symbol}")
+        try:
+            with st.spinner(f"Loading chart for {symbol}..."):
+                chart = plot_chart(symbol)
+                st.plotly_chart(chart, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error generating chart for {symbol}: {str(e)}")
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
@@ -481,5 +482,6 @@ if st.button("Refresh Data"):
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 
 
