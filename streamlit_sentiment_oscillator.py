@@ -364,7 +364,8 @@ else:
     symbols = us_symbols
 
 # Main app
-@st.cache_data
+#@st.cache_data
+@st.experimental_memo(cache=False)  # Temporarily disable caching
 def load_data(symbols):
     data = {}
     for symbol in symbols:
@@ -452,7 +453,11 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     
     # Create the button
     if col.button(f"{symbol}\n{display_value}", key=button_key):
-        st.subheader(f"Detailed Chart for {symbol}")
+        st.session_state.clicked_symbol = symbol  # Store the clicked symbol
+        #st.subheader(f"Detailed Chart for {symbol}")
+    # Display the chart if a symbol was clicked
+    if st.session_state.clicked_symbol:
+        st.subheader(f"Detailed Chart for {st.session_state.clicked_symbol}")    
         try:
             with st.spinner(f"Loading chart for {symbol}..."):
                 chart = plot_chart(symbol)
