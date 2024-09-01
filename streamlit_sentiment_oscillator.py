@@ -461,28 +461,7 @@ if st.button("Refresh Data"):
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-```
-
-
-Key changes in this version:
-
-1. We've reverted to using Streamlit's native `button` function instead of custom HTML.
-2. We're using CSS variables to style the buttons, which allows for dynamic coloring.
-3. The chart is only generated when a button is clicked, using Streamlit's session state to keep track of the clicked symbol.
-4. The overall structure remains very close to your original code.
-
-To use this code:
-
-1. Replace your existing Streamlit app code with this updated version.
-2. Keep all your original functions (get_stock_data, interpolate, normalize, calculate_rsi, etc.) as they were.
-3. Make sure you have the `get_button_color` and `get_text_color` functions defined as they were in your original code.
-4. Run the Streamlit app using:
-   ```
-   streamlit run your_app_name.py
-   ```
-
-This version should maintain your original functionality and appearance while fixing the issue with button clicks and chart display. If you encounter any issues or need further adjustments, please let me know.​​​​​​​​​​​​​​​​
+​​​​​​​​​​​​​​​​
 
 
 
