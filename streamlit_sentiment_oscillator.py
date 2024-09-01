@@ -336,7 +336,7 @@ def plot_chart(ticker):
             dict(bounds=["sat", "mon"]),
             dict(values=["2023-12-25", "2024-01-01"])
         ],
-        range=[data_to_plot.index[0], last_date]
+        range=[first_date, annotation_x]
     )
     
     return fig
