@@ -179,8 +179,7 @@ def calculate_sentiment_oscillator(data):
     
     sentiment = (rsi + stoch + cci + bbp + ma + supertrend + lr + ms) / 8
     return sentiment
-    
-# Function to determine button color
+
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for NaN or infinity values
@@ -192,7 +191,6 @@ def get_button_color(value):
         red = int(255 * (50 - value) / 50)
         return f"rgb({red}, 0, 0)"
 
-# Function to determine text color
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"  # White text for NaN or infinity values
@@ -204,8 +202,6 @@ def get_text_color(value):
     else:
         return "black"
 
-
-        
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
     one_year_ago = data.index[-1] - pd.DateOffset(years=1)
@@ -245,12 +241,7 @@ def plot_chart(ticker):
     last_date = data_to_plot.index[-1]
     annotation_x = last_date + pd.Timedelta(days=2)
 
-    # Add EMA, VAH, VAL, and POC annotations at the right end
-    # Add labels for EMA, VAH, VAL, and POC on the right side
-    fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"EMA20: {ema20.iloc[-1]:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="blue"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"EMA50: {ema50.iloc[-1]:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="orange"), row=1, col=1)
+    # Add EMA, VAH, VAL, and POC Lo
     fig.add_annotation(x=annotation_x, y=ema200.iloc[-1], text=f"EMA200: {ema200.iloc[-1]:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
     fig.add_annotation(x=annotation_x, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
@@ -423,19 +414,6 @@ else:
 # Create a grid of 15 columns
 cols = st.columns(15)
 
-# Custom CSS for button styling
-st.markdown("""
-<style>
-div.stButton > button:first-child {
-    height: auto;
-    padding: 10px 5px;
-    white-space: normal;
-    word-wrap: break-word;
-    font-size: 14px;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 15]
@@ -450,38 +428,50 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
         text_color = get_text_color(value)
         display_value = f'{value:.2f}'
     
-    # Create a unique key for each button
-    button_key = f"btn_{symbol}"
-    
-    # Apply custom styling to the button
-    custom_css = f"""
-    <style>
-    div[data-testid="stButton"] > button:first-child[key="{button_key}"] {{
+    button_html = f"""
+    <button style="
         background-color: {button_color};
         color: {text_color};
-    }}
-    </style>
+        border: none;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+        width: 100%;
+    ">
+        {symbol}<br>{display_value}
+    </button>
     """
-    st.markdown(custom_css, unsafe_allow_html=True)
     
-    # Create the button
-    if col.button(f"{symbol}\n{display_value}", key=button_key):
-        st.subheader(f"Detailed Chart for {symbol}")
-        try:
-            with st.spinner(f"Loading chart for {symbol}..."):
-                chart = plot_chart(symbol)
-                st.plotly_chart(chart, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error generating chart for {symbol}: {str(e)}")
+    # Use a unique key for each button to avoid conflicts
+    if col.markdown(button_html, unsafe_allow_html=True, key=f"btn_{symbol}"):
+        st.session_state.clicked_symbol = symbol
+
+# Display the chart for the clicked button
+if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
+    st.subheader(f"Detailed Chart for {st.session_state.clicked_symbol}")
+    try:
+        with st.spinner(f"Loading chart for {st.session_state.clicked_symbol}..."):
+            chart = plot_chart(st.session_state.clicked_symbol)
+            st.plotly_chart(chart, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error generating chart for {st.session_state.clicked_symbol}: {str(e)}")
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
     st.cache_data.clear()
+    if 'clicked_symbol' in st.session_state:
+        del st.session_state.clicked_symbol
     st.experimental_rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 
 
 
