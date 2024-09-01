@@ -204,6 +204,7 @@ def get_text_color(value):
     else:
         return "black"
 
+
         
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
