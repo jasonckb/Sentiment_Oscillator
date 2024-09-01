@@ -382,6 +382,7 @@ else:
     symbols = us_symbols
 
 # Main app
+# Main app
 @st.cache_data
 def load_data(symbols):
     data = {}
@@ -419,25 +420,8 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
-# Display sell signals
-st.subheader("Stocks with Sell Signal:")
-if not sell_signals.empty:
-    st.write(", ".join(sell_signals.index))
-else:
-    st.write("Nil")
-
 # Create a grid of 15 columns
 cols = st.columns(15)
-
-
-# Function to determine text color
-def get_text_color(value):
-    if value > 75:
-        return "red"
-    elif value < 25:
-        return "blue"
-    else:
-        return "black"
 
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
