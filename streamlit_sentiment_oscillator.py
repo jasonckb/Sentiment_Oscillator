@@ -490,29 +490,24 @@ def main():
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
     
-    for i in range(0, len(symbols_list), num_columns):
+     for i in range(0, len(symbols_list), num_columns):
         cols = grid_container.columns(num_columns)
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
                 sentiment_value = data['sentiment']
                 button_color = get_button_color(sentiment_value)
-                text_color = get_text_color(sentiment_value)
                 display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
                 
-                button_style = f"""
-                    <style>
-                    div[data-testid="stButton"] > button:first-child[key="btn_{symbol}"] {{
-                        background-color: {button_color};
-                        color: {text_color};
-                        height: auto;
-                        padding: 5px 2px;
-                        white-space: normal;
-                        word-wrap: break-word;
-                        font-size: 12px;
-                    }}
-                    </style>
+                # Apply custom styling to the button
+                custom_css = f"""
+                <style>
+                div[data-testid="stButton"] > button:first-child[key="btn_{symbol}"] {{
+                    background-color: {button_color};
+                    color: black;
+                }}
+                </style>
                 """
-                st.markdown(button_style, unsafe_allow_html=True)
+                st.markdown(custom_css, unsafe_allow_html=True)
                 
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
