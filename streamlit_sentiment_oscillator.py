@@ -183,7 +183,7 @@ def calculate_sentiment_oscillator(data):
     return sentiment
 
 def plot_chart(ticker):
-    data = get_stock_data(ticker)
+    data = get_stock_data(ticker, period="1y")  # Changed to 1 year of data
     sentiment = calculate_sentiment_oscillator(data)
     
     # Calculate EMAs
@@ -198,21 +198,6 @@ def plot_chart(ticker):
     price_bins = pd.cut(data['Close'], bins=bins)
     volume_profile = data.groupby(price_bins)['Volume'].sum()
     bin_centers = [(i.left + i.right) / 2 for i in volume_profile.index]
-    
-    # Calculate POC and Value Area
-    poc_price = bin_centers[volume_profile.argmax()]
-    total_volume = volume_profile.sum()
-    target_volume = total_volume * 0.7
-    cumulative_volume = 0
-    value_area_low = value_area_high = poc_price
-    
-    for price, volume in zip(bin_centers, volume_profile):
-        cumulative_volume += volume
-        if cumulative_volume <= target_volume / 2:
-            value_area_low = price
-        if cumulative_volume >= total_volume - target_volume / 2:
-            value_area_high = price
-            break
     
     # Create subplots
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
@@ -243,11 +228,6 @@ def plot_chart(ticker):
         xaxis='x2'
     ), row=1, col=1)
     
-    # Add POC and Value Area lines
-    fig.add_hline(y=poc_price, line_dash="dash", line_color="purple", annotation_text="POC", row=1, col=1)
-    fig.add_hline(y=value_area_low, line_dash="dash", line_color="green", annotation_text="VAL", row=1, col=1)
-    fig.add_hline(y=value_area_high, line_dash="dash", line_color="green", annotation_text="VAH", row=1, col=1)
-    
     # Sentiment Oscillator
     fig.add_trace(go.Scatter(
         x=sentiment.index,
@@ -267,7 +247,8 @@ def plot_chart(ticker):
         yaxis_title="Price",
         xaxis_rangeslider_visible=False,
         height=800,
-        width=1200
+        width=1200,
+        showlegend=False  # Hide legend
     )
     
     fig.update_yaxes(title_text="Price", row=1, col=1)
@@ -348,7 +329,7 @@ def get_text_color(value):
     else:
         return "black"
 
-# Display the sorted sentiment data in a grid
+# Update the display of sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 10]
     cell_color = get_cell_color(value)
@@ -356,12 +337,14 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     if col.button(
         f'{symbol}\n{value:.2f}',
         key=f'btn_{symbol}',
-        help=f'Click to view detailed chart for {symbol}'
+        help=f'Click to view detailed chart for {symbol}',
+        style=f'background-color: {cell_color}; color: {text_color};'
     ):
         st.subheader(f"Detailed Chart for {symbol}")
         with st.spinner(f"Loading chart for {symbol}..."):
             chart = plot_chart(symbol)
             st.plotly_chart(chart, use_container_width=True)
+
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
