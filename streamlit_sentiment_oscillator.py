@@ -181,7 +181,6 @@ def calculate_sentiment_oscillator(data):
     return sentiment
     
 # Function to determine button color
-d# Function to determine button color
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for NaN or infinity values
@@ -204,6 +203,7 @@ def get_text_color(value):
         return "blue"
     else:
         return "black"
+
         
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
