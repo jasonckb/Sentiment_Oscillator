@@ -6,6 +6,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 
+# Set page config at the very beginning
+st.set_page_config(layout="wide")
+
 def get_stock_data(ticker, period="2y"):
     stock = yf.Ticker(ticker)
     data = stock.history(period=period)
@@ -343,9 +346,6 @@ def plot_chart(ticker):
     
     return fig
 
-# Streamlit app
-st.set_page_config(layout="wide")
-st.title("Stock Sentiment Oscillator Dashboard")
 
 # Define the US and HK symbols
 us_symbols = [
@@ -374,121 +374,110 @@ hk_symbols = [
     '1898.HK', '0019.HK', '1929.HK', '0799.HK', '0836.HK', '0853.HK', '0914.HK', '0916.HK', '6078.HK', '2333.HK', '3888.HK'
 ]
 
-# Sidebar
-st.sidebar.header("Stock Universe Selection")
-market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
+def main():
+    st.title("Stock Sentiment Oscillator Dashboard")
 
-if market == "HK Stock":
-    symbols = hk_symbols
-else:
-    symbols = us_symbols
+    # Sidebar
+    st.sidebar.header("Stock Universe Selection")
+    market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
 
-# Main app
-@st.cache_data(ttl=300)  # Cache data for 5 minutes
-def load_data(symbols):
-    data = {}
-    for symbol in symbols:
+    symbols = hk_symbols if market == "HK Stock" else us_symbols
+
+    # Load data
+    @st.cache_data(ttl=300)  # Cache data for 5 minutes
+    def load_data(symbols):
+        data = {}
+        for symbol in symbols:
+            try:
+                stock_data = get_stock_data(symbol, period="2y")
+                sentiment = calculate_sentiment_oscillator(stock_data)
+                data[symbol] = {
+                    'sentiment': sentiment.iloc[-1],
+                    'last_close': stock_data['Close'].iloc[-1],
+                    'last_date': stock_data.index[-1],
+                    'prev_sentiment': sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
+                }
+            except Exception as e:
+                st.warning(f"Error loading data for {symbol}: {e}")
+                data[symbol] = {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
+        return pd.DataFrame.from_dict(data, orient='index')
+
+    with st.spinner("Loading data..."):
+        sentiment_data = load_data(symbols)
+
+    # Sort the sentiment data
+    sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
+
+    # Calculate buy and sell signals
+    buy_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] < 50) & (sorted_sentiment['sentiment'] >= 50)]
+    sell_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] >= 50) & (sorted_sentiment['sentiment'] < 50)]
+
+    # Display buy and sell signals
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Stocks with Buy Signal:")
+        st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
+    with col2:
+        st.subheader("Stocks with Sell Signal:")
+        st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
+
+    # Custom CSS for button styling
+    st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        height: auto;
+        padding: 5px 2px;
+        white-space: normal;
+        word-wrap: break-word;
+        font-size: 12px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Create a container for the grid
+    grid_container = st.container()
+
+    # Display the sorted sentiment data in a grid
+    num_columns = 15
+    symbols_list = list(sorted_sentiment.iterrows())
+    
+    for i in range(0, len(symbols_list), num_columns):
+        cols = grid_container.columns(num_columns)
+        for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
+            if j < len(cols):
+                sentiment_value = data['sentiment']
+                button_color = get_button_color(sentiment_value)
+                text_color = get_text_color(sentiment_value)
+                display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
+                
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                    st.session_state.clicked_symbol = symbol
+
+    # Display the chart for the clicked symbol
+    if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
+        clicked_symbol = st.session_state.clicked_symbol
+        st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
-            stock_data = get_stock_data(symbol, period="2y")
-            sentiment = calculate_sentiment_oscillator(stock_data)
-            latest_sentiment = sentiment.iloc[-1]
-            data[symbol] = {
-                'sentiment': latest_sentiment,
-                'last_close': stock_data['Close'].iloc[-1],
-                'last_date': stock_data.index[-1]
-            }
+            with st.spinner(f"Loading chart for {clicked_symbol}..."):
+                chart = plot_chart(clicked_symbol)
+                st.plotly_chart(chart, use_container_width=True)
+                
+                # Display additional information
+                symbol_data = sentiment_data.loc[clicked_symbol]
+                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                st.write(f"Last Date: {symbol_data['last_date']}")
+                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
-            st.warning(f"Error loading data for {symbol}: {e}")
-            data[symbol] = {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None}
-    return pd.DataFrame.from_dict(data, orient='index')
+            st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
-with st.spinner("Loading data..."):
-    sentiment_data = load_data(symbols)
+    # Add a button to refresh the data
+    if st.button("Refresh Data"):
+        st.cache_data.clear()
+        st.experimental_rerun()
 
-# Sort the sentiment data
-sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
+    # Footer
+    st.markdown("---")
+    st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-# Calculate buy and sell signals
-yesterday_sentiment = sentiment_data['sentiment'].shift(1)
-buy_signals = sorted_sentiment[(yesterday_sentiment < 50) & (sorted_sentiment['sentiment'] >= 50)]
-sell_signals = sorted_sentiment[(yesterday_sentiment >= 50) & (sorted_sentiment['sentiment'] < 50)]
-
-# Display buy and sell signals
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("Stocks with Buy Signal:")
-    st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
-with col2:
-    st.subheader("Stocks with Sell Signal:")
-    st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
-# Display buy and sell signals
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("Stocks with Buy Signal:")
-    st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
-with col2:
-    st.subheader("Stocks with Sell Signal:")
-    st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
-
-
-# Initialize session state to store the clicked symbol
-if 'clicked_symbol' not in st.session_state:
-    st.session_state.clicked_symbol = None
-
-# Custom CSS for button styling
-st.markdown("""
-<style>
-div.stButton > button:first-child {
-    height: auto;
-    padding: 5px 2px;
-    white-space: normal;
-    word-wrap: break-word;
-    font-size: 12px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# Create a container for the grid
-grid_container = st.container()
-
-# Display the sorted sentiment data in a grid
-num_columns = 15
-symbols_list = sorted_sentiment.iterrows()
-
-for i in range(0, len(sorted_sentiment), num_columns):
-    cols = grid_container.columns(num_columns)
-    for j, (symbol, data) in enumerate(list(symbols_list)[i:i+num_columns]):
-        if j < len(cols):
-            sentiment_value = data['sentiment']
-            button_color = get_button_color(sentiment_value)
-            text_color = get_text_color(sentiment_value)
-            display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
-            
-            if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                st.session_state.clicked_symbol = symbol
-
-# Display the chart for the clicked symbol
-if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
-    clicked_symbol = st.session_state.clicked_symbol
-    st.subheader(f"Detailed Chart for {clicked_symbol}")
-    try:
-        with st.spinner(f"Loading chart for {clicked_symbol}..."):
-            chart = plot_chart(clicked_symbol)
-            st.plotly_chart(chart, use_container_width=True)
-            
-            # Display additional information
-            symbol_data = sentiment_data.loc[clicked_symbol]
-            st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-            st.write(f"Last Date: {symbol_data['last_date']}")
-            st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
-    except Exception as e:
-        st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
-
-# Add a button to refresh the data
-if st.button("Refresh Data"):
-    st.cache_data.clear()
-    st.experimental_rerun()
-
-# Footer
-st.markdown("---")
-st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+if __name__ == "__main__":
+    main()
