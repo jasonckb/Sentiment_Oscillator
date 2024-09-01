@@ -421,7 +421,6 @@ else:
     st.write("Nil")
 
 # Create a grid of 15 columns
-# Create a grid of 15 columns
 cols = st.columns(15)
 
 # Store the clicked button state
@@ -482,4 +481,5 @@ if st.button("Refresh Data"):
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 
