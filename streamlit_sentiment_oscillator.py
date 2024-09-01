@@ -181,6 +181,7 @@ def calculate_sentiment_oscillator(data):
     return sentiment
     
 # Function to determine button color
+d# Function to determine button color
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for NaN or infinity values
@@ -244,6 +245,7 @@ def plot_chart(ticker):
     annotation_x = last_date + pd.Timedelta(days=2)
 
     # Add EMA, VAH, VAL, and POC annotations at the right end
+    # Add labels for EMA, VAH, VAL, and POC on the right side
     fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"EMA20: {ema20.iloc[-1]:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="blue"), row=1, col=1)
     fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"EMA50: {ema50.iloc[-1]:.2f}",
@@ -417,6 +419,13 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
+# Display sell signals
+st.subheader("Stocks with Sell Signal:")
+if not sell_signals.empty:
+    st.write(", ".join(sell_signals.index))
+else:
+    st.write("Nil")
+
 # Create a grid of 15 columns
 cols = st.columns(15)
 
@@ -435,12 +444,25 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 15]
     button_color = get_button_color(value)
     text_color = get_text_color(value)
-    if col.button(
-        f'{symbol}\n{value:.2f}' if pd.notna(value) and np.isfinite(value) else f'{symbol}\nN/A',
-        key=f'btn_{symbol}',
-        help=f'Click to view detailed chart for {symbol}'
-    ):
-        st.markdown(f'<style>div.stButton > button:first-child {{ background-color: {button_color}; color: {text_color}; }}</style>', unsafe_allow_html=True)
+    button_html = f"""
+    <button style="
+        background-color: {button_color};
+        color: {text_color};
+        border: none;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+        width: 100%;
+    ">
+        {symbol}<br>{value:.2f if pd.notna(value) and np.isfinite(value) else 'N/A'}
+    </button>
+    """
+    if col.markdown(button_html, unsafe_allow_html=True):
         st.subheader(f"Detailed Chart for {symbol}")
         with st.spinner(f"Loading chart for {symbol}..."):
             chart = plot_chart(symbol)
