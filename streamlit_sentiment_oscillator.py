@@ -209,6 +209,20 @@ def plot_chart(ticker):
     data_to_plot = data.loc[one_year_ago:]
     sentiment = calculate_sentiment_oscillator(data)
     sentiment_to_plot = sentiment.loc[one_year_ago:]
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                        vertical_spacing=0.1, row_heights=[0.7, 0.3])
+    
+    fig.add_trace(go.Candlestick(
+        x=data_to_plot.index,
+        open=data_to_plot['Open'],
+        high=data_to_plot['High'],
+        low=data_to_plot['Low'],
+        close=data_to_plot['Close'],
+        name='Price',
+        increasing_line_color='dodgerblue',
+        decreasing_line_color='red'
+    ), row=1, col=1)
     
     # Calculate EMAs
     ema_20 = calculate_ema(data, 20)
@@ -273,21 +287,7 @@ def plot_chart(ticker):
     fig.add_annotation(x=mid_date, y=value_area_high, text=f"Value at High: {value_area_high:.2f}",
                        showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=12, color="purple"),
                        yshift=5)  # Shift the label 5 pixels above the line
-
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                        vertical_spacing=0.1, row_heights=[0.7, 0.3])
     
-    fig.add_trace(go.Candlestick(
-        x=data_to_plot.index,
-        open=data_to_plot['Open'],
-        high=data_to_plot['High'],
-        low=data_to_plot['Low'],
-        close=data_to_plot['Close'],
-        name='Price',
-        increasing_line_color='dodgerblue',
-        decreasing_line_color='red'
-    ), row=1, col=1)
-
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
         y=sentiment_to_plot, 
