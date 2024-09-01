@@ -216,18 +216,22 @@ def plot_chart(ticker):
     fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
 
     # Calculate the position for price annotations
-    first_date = data_to_plot.index[0]
     last_date = data_to_plot.index[-1]
-    mid_date = first_date + (last_date - first_date) / 2
     annotation_x = last_date + pd.Timedelta(days=2)
 
-    # Add EMA annotations
-    fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"20 EMA: {ema20.iloc[-1]:.2f}",
+    # Add EMA, VAH, VAL, and POC annotations at the right end
+    fig.add_annotation(x=annotation_x, y=ema20.iloc[-1], text=f"EMA20: {ema20.iloc[-1]:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="blue"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"50 EMA: {ema50.iloc[-1]:.2f}",
+    fig.add_annotation(x=annotation_x, y=ema50.iloc[-1], text=f"EMA50: {ema50.iloc[-1]:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="orange"), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=ema200.iloc[-1], text=f"200 EMA: {ema200.iloc[-1]:.2f}",
+    fig.add_annotation(x=annotation_x, y=ema200.iloc[-1], text=f"EMA200: {ema200.iloc[-1]:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+    fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=10, color="green"), row=1, col=1)
 
     # Add Volume Profile
     fig.add_trace(go.Bar(
@@ -240,22 +244,13 @@ def plot_chart(ticker):
         xaxis='x2'
     ), row=1, col=1)
 
-    # Add POC line (red) and annotation
-    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=poc_price, y1=poc_price,
-                  line=dict(color="red", width=2), row=1, col=1)
-    fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
-
-    # Add Value Area lines (purple) with labels in the middle
-    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_low, y1=value_area_low,
+    # Add POC, VAH, and VAL lines
+    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=poc_price, y1=poc_price,
+                  line=dict(color="green", width=2), row=1, col=1)
+    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=value_area_high, y1=value_area_high,
                   line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_annotation(x=mid_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
-                       showarrow=False, xanchor="center", font=dict(size=10, color="purple"), row=1, col=1)
-
-    fig.add_shape(type="line", x0=first_date, x1=last_date, y0=value_area_high, y1=value_area_high,
+    fig.add_shape(type="line", x0=data_to_plot.index[0], x1=last_date, y0=value_area_low, y1=value_area_low,
                   line=dict(color="purple", width=2), row=1, col=1)
-    fig.add_annotation(x=mid_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
-                       showarrow=False, xanchor="center", font=dict(size=10, color="purple"), row=1, col=1)
 
     # Sentiment Oscillator
     fig.add_trace(go.Scatter(
@@ -315,7 +310,7 @@ def plot_chart(ticker):
             dict(bounds=["sat", "mon"]),
             dict(values=["2023-12-25", "2024-01-01"])
         ],
-        range=[first_date, last_date]
+        range=[data_to_plot.index[0], last_date]
     )
     
     return fig
@@ -398,15 +393,15 @@ if not sell_signals.empty:
 else:
     st.write("Nil")
 
-# Create a grid of 20 columns
-cols = st.columns(20)
+# Create a grid of 15 columns
+cols = st.columns(15)
 
 # Function to determine button color
 def get_button_color(value):
     if value > 50:
-        return f"rgb(0, {min(255, int(510 * (value - 50) / 100))}, 0)"
+        return f"rgb(0, {min(255, int(255 * (value - 50) / 50))}, 0)"
     else:
-        return f"rgb({min(255, int(510 * (50 - value) / 100))}, 0, 0)"
+        return f"rgb({min(255, int(255 * (50 - value) / 50))}, 0, 0)"
 
 # Function to determine text color
 def get_text_color(value):
@@ -419,7 +414,7 @@ def get_text_color(value):
 
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
-    col = cols[i % 20]
+    col = cols[i % 15]
     button_color = get_button_color(value)
     text_color = get_text_color(value)
     if col.button(
