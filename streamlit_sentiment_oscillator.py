@@ -182,6 +182,99 @@ def calculate_sentiment_oscillator(data):
     sentiment = (rsi + stoch + cci + bbp + ma + supertrend + lr + ms) / 8
     return sentiment
 
+def plot_chart(ticker):
+    data = get_stock_data(ticker)
+    sentiment = calculate_sentiment_oscillator(data)
+    
+    # Calculate EMAs
+    ema20 = data['Close'].ewm(span=20, adjust=False).mean()
+    ema50 = data['Close'].ewm(span=50, adjust=False).mean()
+    ema200 = data['Close'].ewm(span=200, adjust=False).mean()
+    
+    # Calculate Volume Profile
+    price_range = data['Close'].max() - data['Close'].min()
+    bins = 50
+    bin_size = price_range / bins
+    price_bins = pd.cut(data['Close'], bins=bins)
+    volume_profile = data.groupby(price_bins)['Volume'].sum()
+    bin_centers = [(i.left + i.right) / 2 for i in volume_profile.index]
+    
+    # Calculate POC and Value Area
+    poc_price = bin_centers[volume_profile.argmax()]
+    total_volume = volume_profile.sum()
+    target_volume = total_volume * 0.7
+    cumulative_volume = 0
+    value_area_low = value_area_high = poc_price
+    
+    for price, volume in zip(bin_centers, volume_profile):
+        cumulative_volume += volume
+        if cumulative_volume <= target_volume / 2:
+            value_area_low = price
+        if cumulative_volume >= total_volume - target_volume / 2:
+            value_area_high = price
+            break
+    
+    # Create subplots
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                        vertical_spacing=0.1, row_heights=[0.7, 0.3])
+    
+    # Candlestick chart
+    fig.add_trace(go.Candlestick(
+        x=data.index,
+        open=data['Open'],
+        high=data['High'],
+        low=data['Low'],
+        close=data['Close'],
+        name='Price'
+    ), row=1, col=1)
+    
+    # Add EMA lines
+    fig.add_trace(go.Scatter(x=data.index, y=ema20, name='EMA 20', line=dict(color='blue', width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=data.index, y=ema50, name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=data.index, y=ema200, name='EMA 200', line=dict(color='red', width=1)), row=1, col=1)
+    
+    # Add Volume Profile
+    fig.add_trace(go.Bar(
+        x=volume_profile.values,
+        y=bin_centers,
+        orientation='h',
+        name='Volume Profile',
+        marker_color='rgba(200, 200, 200, 0.5)',
+        xaxis='x2'
+    ), row=1, col=1)
+    
+    # Add POC and Value Area lines
+    fig.add_hline(y=poc_price, line_dash="dash", line_color="purple", annotation_text="POC", row=1, col=1)
+    fig.add_hline(y=value_area_low, line_dash="dash", line_color="green", annotation_text="VAL", row=1, col=1)
+    fig.add_hline(y=value_area_high, line_dash="dash", line_color="green", annotation_text="VAH", row=1, col=1)
+    
+    # Sentiment Oscillator
+    fig.add_trace(go.Scatter(
+        x=sentiment.index,
+        y=sentiment, 
+        line=dict(color='purple', width=2),
+        name='Sentiment Oscillator'
+    ), row=2, col=1)
+    
+    # Add reference lines for oscillator
+    fig.add_hline(y=75, line_dash="dash", line_color="red", row=2, col=1)
+    fig.add_hline(y=50, line_dash="dash", line_color="gray", row=2, col=1)
+    fig.add_hline(y=25, line_dash="dash", line_color="green", row=2, col=1)
+    
+    fig.update_layout(
+        title=f"{ticker} - Price Chart and Sentiment Oscillator",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False,
+        height=800,
+        width=1200
+    )
+    
+    fig.update_yaxes(title_text="Price", row=1, col=1)
+    fig.update_yaxes(title_text="Sentiment Oscillator", range=[0, 100], row=2, col=1)
+    
+    return fig
+
 # Streamlit app
 st.set_page_config(layout="wide")
 st.title("Stock Sentiment Oscillator Dashboard")
@@ -194,9 +287,6 @@ if market == "HK Stock":
     symbols = hk_symbols
 else:
     symbols = us_symbols
-
-# Main app
-# ... (previous code remains the same)
 
 # Main app
 @st.cache_data
@@ -263,13 +353,15 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 10]
     cell_color = get_cell_color(value)
     text_color = get_text_color(value)
-    col.markdown(
-        f'<div style="background-color: {cell_color}; padding: 10px; margin: 5px; border-radius: 5px;">'
-        f'<span style="color: black;">{symbol}</span><br>'
-        f'<span style="color: {text_color};">{value:.2f}</span>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    if col.button(
+        f'{symbol}\n{value:.2f}',
+        key=f'btn_{symbol}',
+        help=f'Click to view detailed chart for {symbol}'
+    ):
+        st.subheader(f"Detailed Chart for {symbol}")
+        with st.spinner(f"Loading chart for {symbol}..."):
+            chart = plot_chart(symbol)
+            st.plotly_chart(chart, use_container_width=True)
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
