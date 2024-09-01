@@ -1,8 +1,10 @@
+import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
 
 def get_stock_data(ticker, period="1y"):
     stock = yf.Ticker(ticker)
