@@ -470,7 +470,7 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # Custom CSS for button styling
+     # Custom CSS for button styling
     st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -490,7 +490,7 @@ def main():
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
     
-     for i in range(0, len(symbols_list), num_columns):
+    for i in range(0, len(symbols_list), num_columns):
         cols = grid_container.columns(num_columns)
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
