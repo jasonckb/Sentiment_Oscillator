@@ -1,0 +1,281 @@
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Define the US and HK symbols
+us_symbols = [
+    '^NDX', '^GSPC', 'AAPL', 'MSFT', 'AMZN', 'NVDA', 'GOOG', 'META', 'TSLA', 'JPM',
+    'V', 'UNH', 'LLY', 'JNJ', 'XOM', 'WMT', 'MA', 'PG', 'KO', 'HD',
+    'AVGO', 'CVX', 'MRK', 'PE', 'GS', 'ABBV', 'COST', 'TSM', 'VZ', 'PFE',
+    'NFLX', 'ADBE', 'ASML', 'CRM', 'ACN', 'TRV', 'BA', 'TXN', 'IBM', 'DIS',
+    'UPS', 'SPGI', 'INTC', 'AMD', 'QCOM', 'AMT', 'CHTR', 'SBUX', 'MS', 'BLK',
+    'GE', 'MMM', 'GILD', 'CAT', 'INTU', 'ISRG', 'AMGN', 'CVS', 'DE', 'EQIX',
+    'TJX', 'PGR', 'BKNG', 'MU', 'LRCX', 'REGN', 'ARM', 'PLTR', 'SNOW', 'PANW',
+    'CRWD', 'ZS', 'ABNB', 'CDNS', 'DDOG', 'ICE', 'TTD', 'TEAM', 'CEG', 'VST',
+    'NRG', 'NEE', 'PYPL', 'FTNT', 'IDXX', 'SMH', 'XLU', 'XLP', 'XLE', 'XLK',
+    'XLY', 'XLI', 'XLB', 'XLRE', 'XLF', 'XLV', 'OXY', 'NVO', 'CCL', 'LEN'
+]
+
+hk_symbols = [
+    '^HSI', '0020.HK', '0017.HK', '0241.HK', '0066.HK', '1038.HK', '0006.HK', '0011.HK', '0012.HK', '0857.HK',
+    '3988.HK', '1044.HK', '0386.HK', '2388.HK', '1113.HK', '0941.HK', '1997.HK', '0001.HK', '1093.HK', '1109.HK',
+    '1177.HK', '1211.HK', '1299.HK', '1398.HK', '0016.HK', '0175.HK', '1810.HK', '1876.HK', '1928.HK', '2007.HK',
+    '2018.HK', '2269.HK', '2313.HK', '2318.HK', '2319.HK', '2331.HK', '2382.HK', '2628.HK', '0267.HK', '0027.HK',
+    '0288.HK', '0003.HK', '3690.HK', '0388.HK', '3968.HK', '0005.HK', '6098.HK', '0669.HK', '6862.HK', '0688.HK',
+    '0700.HK', '0762.HK', '0823.HK', '0868.HK', '0883.HK', '0939.HK', '0960.HK', '0968.HK', '9988.HK', '1024.HK',
+    '1347.HK', '1833.HK', '2013.HK', '2518.HK', '0268.HK', '0285.HK', '3888.HK', '0522.HK', '6060.HK', '6618.HK',
+    '6690.HK', '0772.HK', '0909.HK', '9618.HK', '9626.HK', '9698.HK', '0981.HK', '9888.HK', '0992.HK', '9961.HK',
+    '9999.HK', '2015.HK', '0291.HK', '0293.HK', '0358.HK', '1772.HK', '1776.HK', '1787.HK', '1801.HK', '1818.HK',
+    '1898.HK', '0019.HK', '1929.HK', '0799.HK', '0836.HK', '0853.HK', '0914.HK', '0916.HK', '6078.HK', '2333.HK', '3888.HK'
+]
+
+# Helper functions
+def get_stock_data(ticker, period="2y"):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period=period)
+    return data.dropna()
+
+def interpolate(value, value_high, value_low, range_high, range_low):
+    return range_low + (value - value_low) * (range_high - range_low) / (value_high - value_low)
+
+def normalize(series, buy, sell, smooth):
+    os = pd.Series(0, index=series.index)
+    os[buy] = 1
+    os[sell] = -1
+    
+    max_val = series.copy()
+    min_val = series.copy()
+    
+    for i in range(1, len(series)):
+        if os.iloc[i] > os.iloc[i-1]:
+            max_val.iloc[i] = series.iloc[i]
+            min_val.iloc[i] = min_val.iloc[i-1]
+        elif os.iloc[i] < os.iloc[i-1]:
+            min_val.iloc[i] = series.iloc[i]
+            max_val.iloc[i] = max_val.iloc[i-1]
+        else:
+            max_val.iloc[i] = max(series.iloc[i], max_val.iloc[i-1])
+            min_val.iloc[i] = min(series.iloc[i], min_val.iloc[i-1])
+    
+    normalized = (series - min_val) / (max_val - min_val)
+    return normalized.rolling(window=smooth).mean() * 100
+
+def calculate_rsi(data, length=14):
+    delta = data['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=length).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=length).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    result = pd.Series(index=rsi.index)
+    result[rsi > 70] = interpolate(rsi[rsi > 70], 100, 70, 100, 75)
+    result[(rsi > 50) & (rsi <= 70)] = interpolate(rsi[(rsi > 50) & (rsi <= 70)], 70, 50, 75, 50)
+    result[(rsi > 30) & (rsi <= 50)] = interpolate(rsi[(rsi > 30) & (rsi <= 50)], 50, 30, 50, 25)
+    result[rsi <= 30] = interpolate(rsi[rsi <= 30], 30, 0, 25, 0)
+    
+    return result
+
+def calculate_stochastic(data, k_window=14, smooth_k=3):
+    low_min = data['Low'].rolling(window=k_window).min()
+    high_max = data['High'].rolling(window=k_window).max()
+    k = 100 * (data['Close'] - low_min) / (high_max - low_min)
+    d = k.rolling(window=smooth_k).mean()
+    
+    result = pd.Series(index=d.index)
+    result[d > 80] = interpolate(d[d > 80], 100, 80, 100, 75)
+    result[(d > 50) & (d <= 80)] = interpolate(d[(d > 50) & (d <= 80)], 80, 50, 75, 50)
+    result[(d > 20) & (d <= 50)] = interpolate(d[(d > 20) & (d <= 50)], 50, 20, 50, 25)
+    result[d <= 20] = interpolate(d[d <= 20], 20, 0, 25, 0)
+    
+    return result
+
+def calculate_cci(data, length=20):
+    tp = (data['High'] + data['Low'] + data['Close']) / 3
+    sma_tp = tp.rolling(window=length).mean()
+    mad = tp.rolling(window=length).apply(lambda x: np.abs(x - x.mean()).mean())
+    cci = (tp - sma_tp) / (0.015 * mad)
+    
+    result = pd.Series(index=cci.index)
+    result[cci > 100] = interpolate(cci[cci > 100], 300, 100, 100, 75)
+    result[(cci >= 0) & (cci <= 100)] = interpolate(cci[(cci >= 0) & (cci <= 100)], 100, 0, 75, 50)
+    result[(cci < 0) & (cci >= -100)] = interpolate(cci[(cci < 0) & (cci >= -100)], 0, -100, 50, 25)
+    result[cci < -100] = interpolate(cci[cci < -100], -100, -300, 25, 0)
+    
+    return result
+
+def calculate_bbp(data, length=13):
+    ma = data['Close'].ewm(span=length, adjust=False).mean()
+    bbp = data['High'] + data['Low'] - 2 * ma
+    bbp_std = bbp.rolling(window=100).std()
+    upper = bbp.rolling(window=100).mean() + 2 * bbp_std
+    lower = bbp.rolling(window=100).mean() - 2 * bbp_std
+    
+    result = pd.Series(index=bbp.index)
+    result[bbp > upper] = interpolate(bbp[bbp > upper], 1.5 * upper, upper, 100, 75)
+    result[(bbp > 0) & (bbp <= upper)] = interpolate(bbp[(bbp > 0) & (bbp <= upper)], upper, 0, 75, 50)
+    result[(bbp < 0) & (bbp >= lower)] = interpolate(bbp[(bbp < 0) & (bbp >= lower)], 0, lower, 50, 25)
+    result[bbp < lower] = interpolate(bbp[bbp < lower], lower, 1.5 * lower, 25, 0)
+    
+    return result
+
+def calculate_ma(data, length=20, ma_type='SMA'):
+    if ma_type == 'SMA':
+        ma = data['Close'].rolling(window=length).mean()
+    elif ma_type == 'EMA':
+        ma = data['Close'].ewm(span=length, adjust=False).mean()
+    
+    return normalize(data['Close'], data['Close'] > ma, data['Close'] < ma, 3)
+
+def calculate_supertrend(data, factor=3, period=10):
+    hl2 = (data['High'] + data['Low']) / 2
+    atr = data['High'].sub(data['Low']).rolling(window=period).mean()
+    upperband = hl2 + (factor * atr)
+    lowerband = hl2 - (factor * atr)
+    supertrend = pd.Series(index=data.index)
+    direction = pd.Series(index=data.index)
+    
+    for i in range(period, len(data)):
+        if data['Close'].iloc[i] > upperband.iloc[i-1]:
+            supertrend.iloc[i] = lowerband.iloc[i]
+            direction.iloc[i] = 1
+        elif data['Close'].iloc[i] < lowerband.iloc[i-1]:
+            supertrend.iloc[i] = upperband.iloc[i]
+            direction.iloc[i] = -1
+        else:
+            supertrend.iloc[i] = supertrend.iloc[i-1]
+            direction.iloc[i] = direction.iloc[i-1]
+            
+            if direction.iloc[i] == 1 and lowerband.iloc[i] < supertrend.iloc[i]:
+                supertrend.iloc[i] = lowerband.iloc[i]
+            if direction.iloc[i] == -1 and upperband.iloc[i] > supertrend.iloc[i]:
+                supertrend.iloc[i] = upperband.iloc[i]
+    
+    return normalize(data['Close'], data['Close'] > supertrend, data['Close'] < supertrend, 3)
+
+def calculate_linear_regression(data, length=25):
+    lr = 50 * data['Close'].rolling(window=length).apply(lambda x: np.corrcoef(x, range(length))[0, 1]) + 50
+    return lr
+
+def calculate_market_structure(data, length=5):
+    highs = data['High'].rolling(window=length).max()
+    lows = data['Low'].rolling(window=length).min()
+    
+    bull_break = (data['Close'] > highs.shift(1)) & (data['Close'].shift(1) <= highs.shift(1))
+    bear_break = (data['Close'] < lows.shift(1)) & (data['Close'].shift(1) >= lows.shift(1))
+    
+    return normalize(data['Close'], bull_break, bear_break, 3)
+
+def calculate_sentiment_oscillator(data):
+    rsi = calculate_rsi(data)
+    stoch = calculate_stochastic(data)
+    cci = calculate_cci(data)
+    bbp = calculate_bbp(data)
+    ma = calculate_ma(data)
+    supertrend = calculate_supertrend(data)
+    lr = calculate_linear_regression(data)
+    ms = calculate_market_structure(data)
+    
+    sentiment = (rsi + stoch + cci + bbp + ma + supertrend + lr + ms) / 8
+    return sentiment
+
+# Streamlit app
+st.set_page_config(layout="wide")
+st.title("Stock Sentiment Oscillator Dashboard")
+
+# Sidebar
+st.sidebar.header("Stock Universe Selection")
+market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
+
+if market == "HK Stock":
+    symbols = hk_symbols
+else:
+    symbols = us_symbols
+
+# Main app
+# ... (previous code remains the same)
+
+# Main app
+@st.cache_data
+def load_data(symbols):
+    data = {}
+    for symbol in symbols:
+        try:
+            stock_data = get_stock_data(symbol)
+            sentiment = calculate_sentiment_oscillator(stock_data)
+            data[symbol] = sentiment.iloc[-1]
+        except Exception as e:
+            st.warning(f"Error loading data for {symbol}: {e}")
+    return pd.Series(data)
+
+with st.spinner("Loading data..."):
+    sentiment_data = load_data(symbols)
+
+# Sort the sentiment data
+sorted_sentiment = sentiment_data.sort_values(ascending=False)
+
+# Calculate buy and sell signals
+yesterday_sentiment = sentiment_data.shift(1)
+buy_signals = sorted_sentiment[(yesterday_sentiment < 50) & (sorted_sentiment >= 50)]
+sell_signals = sorted_sentiment[(yesterday_sentiment >= 50) & (sorted_sentiment < 50)]
+
+# Display buy signals
+st.subheader("Stocks with Buy Signal:")
+if not buy_signals.empty:
+    st.write(", ".join(buy_signals.index))
+else:
+    st.write("Nil")
+
+# Display sell signals
+st.subheader("Stocks with Sell Signal:")
+if not sell_signals.empty:
+    st.write(", ".join(sell_signals.index))
+else:
+    st.write("Nil")
+
+# Create a grid of 10 columns
+col1, col2, col3, col4, col5, col6, col7, col8, col9, col10 = st.columns(10)
+cols = [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10]
+
+# Function to determine cell color
+def get_cell_color(value):
+    if value > 50:
+        return "lightgreen"
+    elif value < 50:
+        return "lightpink"
+    else:
+        return "lightgray"
+
+# Function to determine text color
+def get_text_color(value):
+    if value > 75:
+        return "red"
+    elif value < 25:
+        return "blue"
+    else:
+        return "black"
+
+# Display the sorted sentiment data in a grid
+for i, (symbol, value) in enumerate(sorted_sentiment.items()):
+    col = cols[i % 10]
+    cell_color = get_cell_color(value)
+    text_color = get_text_color(value)
+    col.markdown(
+        f'<div style="background-color: {cell_color}; padding: 10px; margin: 5px; border-radius: 5px;">'
+        f'<span style="color: black;">{symbol}</span><br>'
+        f'<span style="color: {text_color};">{value:.2f}</span>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+# Add a button to refresh the data
+if st.button("Refresh Data"):
+    st.cache_data.clear()
+    st.experimental_rerun()
+
+# Footer
+st.markdown("---")
+st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
