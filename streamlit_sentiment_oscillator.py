@@ -34,7 +34,7 @@ hk_symbols = [
 ]
 
 # Helper functions
-def get_stock_data(ticker, period="2y"):
+def get_stock_data(ticker, period="1y"):
     stock = yf.Ticker(ticker)
     data = stock.history(period=period)
     return data.dropna()
@@ -183,7 +183,7 @@ def calculate_sentiment_oscillator(data):
     return sentiment
 
 def plot_chart(ticker):
-    data = get_stock_data(ticker, period="1y")  # Changed to 1 year of data
+    data = get_stock_data(ticker, period="1y")
     sentiment = calculate_sentiment_oscillator(data)
     
     # Calculate EMAs
@@ -329,7 +329,7 @@ def get_text_color(value):
     else:
         return "black"
 
-# Update the display of sorted sentiment data in a grid
+# Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 10]
     cell_color = get_cell_color(value)
@@ -337,14 +337,12 @@ for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     if col.button(
         f'{symbol}\n{value:.2f}',
         key=f'btn_{symbol}',
-        help=f'Click to view detailed chart for {symbol}',
-        style=f'background-color: {cell_color}; color: {text_color};'
+        help=f'Click to view detailed chart for {symbol}'
     ):
         st.subheader(f"Detailed Chart for {symbol}")
         with st.spinner(f"Loading chart for {symbol}..."):
             chart = plot_chart(symbol)
             st.plotly_chart(chart, use_container_width=True)
-
 
 # Add a button to refresh the data
 if st.button("Refresh Data"):
