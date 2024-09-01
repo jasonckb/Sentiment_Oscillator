@@ -241,12 +241,19 @@ def plot_chart(ticker):
     first_date = data_to_plot.index[0]
     last_date = data_to_plot.index[-1]
     annotation_x = last_date + pd.Timedelta(days=2)
+    mid_date = first_date + (last_date - first_date) / 2
 
-    # Add EMA lines and annotations
-    for ema, color, width, name in zip([ema_20, ema_50, ema_200], ['blue', 'orange', 'red'], [1, 1, 1], ['EMA 20', 'EMA 50', 'EMA 200']):
-        fig.add_trace(go.Scatter(x=data_to_plot.index, y=ema, name=name, line=dict(color=color, width=width)), row=1, col=1)
+    # Add EMA horizontal lines and annotations
+    for ema, color, width, name in zip([ema_20, ema_50, ema_200], ['gray', 'gray', 'gray'], [1, 2, 3], ['20 EMA', '50 EMA', '200 EMA']):
+        fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema.iloc[-1], y1=ema.iloc[-1],
+                      line=dict(color=color, width=width, dash="dash"), row=1, col=1)
         fig.add_annotation(x=annotation_x, y=ema.iloc[-1], text=f"{name}: {ema.iloc[-1]:.2f}",
-                           showarrow=False, xanchor="left", font=dict(size=10, color=color), row=1, col=1)
+                           showarrow=False, xanchor="left", font=dict(size=12, color=color), row=1, col=1)
+
+    # Add current price annotation
+    current_price = data_to_plot['Close'].iloc[-1]
+    fig.add_annotation(x=annotation_x, y=current_price, text=f"Current Price: {current_price:.2f}",
+                       showarrow=False, xanchor="left", font=dict(size=14, color="black"), row=1, col=1)
 
     # Calculate and add volume profile
     volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data_to_plot)
@@ -263,27 +270,24 @@ def plot_chart(ticker):
 
     # Add POC line (red)
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=poc_price, y1=poc_price,
-                  line=dict(color="green", width=2), row=1, col=1)
+                  line=dict(color="red", width=4), row=1, col=1)
     fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="green"), row=1, col=1)
+                       showarrow=False, xanchor="left", font=dict(size=12, color="red"), row=1, col=1)
 
-    # Add Value Area lines (purple) with labels
+    # Add Value Area lines (purple) with labels in the middle
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_low, y1=value_area_low,
                   line=dict(color="purple", width=2), row=1, col=1)
+    fig.add_annotation(x=mid_date, y=value_area_low, text=f"Value at Low: {value_area_low:.2f}",
+                       showarrow=False, xanchor="center", yanchor="top", font=dict(size=12, color="purple"),
+                       yshift=-5, row=1, col=1)
+
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_high, y1=value_area_high,
                   line=dict(color="purple", width=2), row=1, col=1)
-    
-    fig.add_annotation(x=first_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
-    fig.add_annotation(x=first_date, y=value_area_high, text=f"VAH: {value_area_high:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=10, color="purple"), row=1, col=1)
+    fig.add_annotation(x=mid_date, y=value_area_high, text=f"Value at High: {value_area_high:.2f}",
+                       showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=12, color="purple"),
+                       yshift=5, row=1, col=1)
 
-    # Add current price annotation
-    current_price = data_to_plot['Close'].iloc[-1]
-    fig.add_annotation(x=annotation_x, y=current_price, text=f"Current Price: {current_price:.2f}",
-                       showarrow=False, xanchor="left", font=dict(size=12, color="black"), row=1, col=1)
-
-    # Add Sentiment Oscillator
+    # Add Sentiment Oscillator (keep this part unchanged)
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
         y=sentiment_to_plot, 
