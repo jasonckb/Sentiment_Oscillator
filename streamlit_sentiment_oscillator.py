@@ -320,6 +320,10 @@ def plot_chart(ticker):
     
     return fig
 
+# Streamlit app
+st.set_page_config(layout="wide")
+st.title("Stock Sentiment Oscillator Dashboard")
+
 # Define the US and HK symbols
 us_symbols = [
     '^NDX', '^GSPC', 'AAPL', 'MSFT', 'AMZN', 'NVDA', 'GOOG', 'META', 'TSLA', 'JPM',
@@ -347,9 +351,6 @@ hk_symbols = [
     '1898.HK', '0019.HK', '1929.HK', '0799.HK', '0836.HK', '0853.HK', '0914.HK', '0916.HK', '6078.HK', '2333.HK', '3888.HK'
 ]
 
-st.set_page_config(layout="wide")
-st.title("Stock Sentiment Oscillator Dashboard")
-
 # Sidebar
 st.sidebar.header("Stock Universe Selection")
 market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
@@ -374,6 +375,7 @@ def load_data(symbols):
 
 with st.spinner("Loading data..."):
     sentiment_data = load_data(symbols)
+
 # Sort the sentiment data
 sorted_sentiment = sentiment_data.sort_values(ascending=False)
 
@@ -402,9 +404,9 @@ cols = st.columns(20)
 # Function to determine button color
 def get_button_color(value):
     if value > 50:
-        return f"rgba(0, 255, 0, {min(1, (value - 50) / 50)})"
+        return f"rgb(0, {min(255, int(510 * (value - 50) / 100))}, 0)"
     else:
-        return f"rgba(255, 0, 0, {min(1, (50 - value) / 50)})"
+        return f"rgb({min(255, int(510 * (50 - value) / 100))}, 0, 0)"
 
 # Function to determine text color
 def get_text_color(value):
@@ -415,19 +417,17 @@ def get_text_color(value):
     else:
         return "black"
 
-
 # Display the sorted sentiment data in a grid
 for i, (symbol, value) in enumerate(sorted_sentiment.items()):
     col = cols[i % 20]
     button_color = get_button_color(value)
     text_color = get_text_color(value)
-    button_style = f"background-color: {button_color}; color: {text_color}; border: none; padding: 5px; margin: 2px; border-radius: 5px;"
     if col.button(
         f'{symbol}\n{value:.2f}',
         key=f'btn_{symbol}',
-        help=f'Click to view detailed chart for {symbol}',
-        style=button_style
+        help=f'Click to view detailed chart for {symbol}'
     ):
+        st.markdown(f'<style>div.stButton > button:first-child {{ background-color: {button_color}; color: {text_color}; }}</style>', unsafe_allow_html=True)
         st.subheader(f"Detailed Chart for {symbol}")
         with st.spinner(f"Loading chart for {symbol}..."):
             chart = plot_chart(symbol)
