@@ -470,7 +470,7 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-     # Custom CSS for button styling
+    # Custom CSS for button styling
     st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -496,21 +496,12 @@ def main():
             if j < len(cols):
                 sentiment_value = data['sentiment']
                 button_color = get_button_color(sentiment_value)
+                text_color = get_text_color(sentiment_value)
                 display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
-                
-                # Apply custom styling to the button
-                custom_css = f"""
-                <style>
-                div[data-testid="stButton"] > button:first-child[key="btn_{symbol}"] {{
-                    background-color: {button_color};
-                    color: black;
-                }}
-                </style>
-                """
-                st.markdown(custom_css, unsafe_allow_html=True)
                 
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
+
     # Display the chart for the clicked symbol
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
