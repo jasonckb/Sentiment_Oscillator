@@ -482,7 +482,7 @@ def main():
         cols = grid_container.columns(num_columns)
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
-                sentiment_value = data['sentiment']
+                sentiment_value = data['sorted_sentiment']
                 button_color = get_button_color(sentiment_value)
                 text_color = get_text_color(sentiment_value)
                 if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
