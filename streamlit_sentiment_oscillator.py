@@ -191,7 +191,7 @@ def calculate_sentiment_oscillator(data):
 
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
-        return "rgb(128, 128, 128)"
+        return "rgb(128, 128, 128)"  # Gray for invalid values
     value = max(0, min(100, value))
     if value > 50:
         green = int(255 * (value - 50) / 50)
@@ -490,9 +490,12 @@ def main():
                 sentiment_value = data['sentiment']
                 button_color = get_button_color(sentiment_value)
                 text_color = get_text_color(sentiment_value)
-                display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
+                if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
+                    display_value = f'{sentiment_value:.2f}'
+                else:
+                    display_value = 'N/A'
                 
-                if cols[j].button(f"{symbol}\n{display_value:.2f}", key=f"btn_{symbol}"):
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
