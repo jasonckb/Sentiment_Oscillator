@@ -195,23 +195,14 @@ def get_button_color(value):
     value = float(value)  # Ensure value is a float
     value = max(0, min(100, value))
     if value > 50:
-        green = int(255 * (value - 50) / 50)
-        return f"rgb(0, {green}, 0)"
+        return "rgba(0, 255, 0, 0.2)"  # Light green
     else:
-        red = int(255 * (50 - value) / 50)
-        return f"rgb({red}, 0, 0)"
+        return "rgba(255, 192, 203, 0.2)"  # Light pink
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"
-    value = float(value)  # Ensure value is a float
-    value = max(0, min(100, value))
-    if value > 75:
-        return "white"  # High contrast for very green buttons
-    elif value < 25:
-        return "white"  # High contrast for very red buttons
-    else:
-        return "black"
+    return "black"  # Always use black text for better visibility on light backgrounds
 
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
@@ -524,8 +515,6 @@ def main():
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     clicked_symbol = symbol
 
-    st.write(f"Debug: Clicked symbol: {clicked_symbol}")  # Debug output
-
     if clicked_symbol:
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
@@ -539,6 +528,8 @@ def main():
                 st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+
+
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
