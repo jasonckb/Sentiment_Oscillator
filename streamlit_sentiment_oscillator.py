@@ -189,20 +189,7 @@ def calculate_sentiment_oscillator(data):
     sentiment = combined.mean(axis=1)
     return sentiment
 
-def get_button_color(value):
-    if pd.isna(value) or not np.isfinite(value):
-        return "rgb(128, 128, 128)"  # Gray for invalid values
-    value = float(value)  # Ensure value is a float
-    value = max(0, min(100, value))
-    if value > 50:
-        return "rgba(0, 255, 0, 0.2)"  # Light green
-    else:
-        return "rgba(255, 192, 203, 0.2)"  # Light pink
 
-def get_text_color(value):
-    if pd.isna(value) or not np.isfinite(value):
-        return "white"
-    return "black"  # Always use black text for better visibility on light backgrounds
 
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
@@ -477,6 +464,21 @@ def main():
     symbols_list = list(sorted_sentiment.iterrows())
 
     clicked_symbol = None
+
+    def get_button_color(value):
+        if pd.isna(value) or not np.isfinite(value):
+            return "rgb(128, 128, 128)"  # Gray for invalid values
+        value = float(value)  # Ensure value is a float
+        value = max(0, min(100, value))
+        if value > 50:
+            return "rgba(0, 255, 0, 0.2)"  # Light green
+        else:
+            return "rgba(255, 192, 203, 0.2)"  # Light pink
+    
+    def get_text_color(value):
+        if pd.isna(value) or not np.isfinite(value):
+            return "white"
+        return "black"  # Always use black text for better visibility on light backgrounds
 
     for i in range(0, len(symbols_list), num_columns):
         cols = grid_container.columns(num_columns)
