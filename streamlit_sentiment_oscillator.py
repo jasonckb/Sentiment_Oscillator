@@ -436,8 +436,16 @@ def main():
 
     symbols = hk_symbols if market == "HK Stock" else us_symbols
 
+    # Debug statements
+    st.write("Debug: Starting main function")
+    st.write(f"Debug: Number of symbols: {len(symbols)}")
+    st.write(f"Debug: First few symbols: {symbols[:5]}")
+
     with st.spinner("Loading data..."):
         sentiment_data = load_data(symbols)
+
+    with st.expander("Debug: Show full sentiment data"):
+        st.write(sentiment_data)
 
     sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
@@ -479,64 +487,58 @@ def main():
     }
     </style>
     """, unsafe_allow_html=True)
-    
-    st.write("Debug: Starting main function")
-st.write(f"Debug: Number of symbols: {len(symbols)}")
-st.write(f"Debug: First few symbols: {symbols[:5]}")
-with st.expander("Debug: Show full sentiment data"):
-    st.write(sentiment_data)
 
-grid_container = st.container()
+    grid_container = st.container()
 
-num_columns = 15
-symbols_list = list(sorted_sentiment.iterrows())
+    num_columns = 15
+    symbols_list = list(sorted_sentiment.iterrows())
 
-clicked_symbol = None  # Initialize clicked_symbol
+    clicked_symbol = None  # Initialize clicked_symbol
 
-for i in range(0, len(symbols_list), num_columns):
-    cols = grid_container.columns(num_columns)
-    for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
-        if j < len(cols):
-            sentiment_value = data['sentiment']
-            button_color = get_button_color(sentiment_value)
-            text_color = get_text_color(sentiment_value)
-            if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
-                display_value = f'{sentiment_value:.2f}'
-            else:
-                display_value = 'N/A'
-            
-            button_style = f"""
-            <style>
-            div[data-testid="stButton"] > button:first-child {{
-                background-color: {button_color};
-                color: {text_color};
-                width: 100px;
-                height: 60px;
-                white-space: normal;
-                word-wrap: break-word;
-            }}
-            </style>
-            """
-            st.markdown(button_style, unsafe_allow_html=True)
-            
-            if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                clicked_symbol = symbol
+    for i in range(0, len(symbols_list), num_columns):
+        cols = grid_container.columns(num_columns)
+        for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
+            if j < len(cols):
+                sentiment_value = data['sentiment']
+                button_color = get_button_color(sentiment_value)
+                text_color = get_text_color(sentiment_value)
+                if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
+                    display_value = f'{sentiment_value:.2f}'
+                else:
+                    display_value = 'N/A'
+                
+                button_style = f"""
+                <style>
+                div[data-testid="stButton"] > button:first-child {{
+                    background-color: {button_color};
+                    color: {text_color};
+                    width: 100px;
+                    height: 60px;
+                    white-space: normal;
+                    word-wrap: break-word;
+                }}
+                </style>
+                """
+                st.markdown(button_style, unsafe_allow_html=True)
+                
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                    clicked_symbol = symbol
 
-st.write(f"Debug: Clicked symbol: {clicked_symbol}")  # Debug output
+    st.write(f"Debug: Clicked symbol: {clicked_symbol}")  # Debug output
 
-if clicked_symbol:
-    st.subheader(f"Detailed Chart for {clicked_symbol}")
-    try:
-        with st.spinner(f"Loading chart for {clicked_symbol}..."):
-            chart = plot_chart(clicked_symbol)
-            st.plotly_chart(chart, use_container_width=True)
-            
-            symbol_data = sentiment_data.loc[clicked_symbol]
-            st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-            st.write(f"Last Date: {symbol_data['last_date']}")
-            st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
-    except Exception as e:
-        st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+    if clicked_symbol:
+        st.subheader(f"Detailed Chart for {clicked_symbol}")
+        try:
+            with st.spinner(f"Loading chart for {clicked_symbol}..."):
+                chart = plot_chart(clicked_symbol)
+                st.plotly_chart(chart, use_container_width=True)
+                
+                symbol_data = sentiment_data.loc[clicked_symbol]
+                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                st.write(f"Last Date: {symbol_data['last_date']}")
+                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
+        except Exception as e:
+            st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
