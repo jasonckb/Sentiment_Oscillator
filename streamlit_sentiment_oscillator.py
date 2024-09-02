@@ -405,6 +405,39 @@ hk_symbols = [
     '1898.HK', '0019.HK', '1929.HK', '0799.HK', '0836.HK', '0853.HK', '0914.HK', '0916.HK', '6078.HK', '2333.HK', '3888.HK'
 ]
 
+def fetch_single_stock_data(symbol, period="2y"):
+    try:
+        stock_data = get_stock_data(symbol, period=period)
+        if not stock_data.empty:
+            sentiment = calculate_sentiment_oscillator(stock_data)
+            latest_date = stock_data.index[-1]
+            latest_sentiment = sentiment.loc[latest_date] if latest_date in sentiment.index else np.nan
+            prev_sentiment = sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
+            return symbol, {
+                'sentiment': latest_sentiment,
+                'last_close': stock_data['Close'].loc[latest_date],
+                'last_date': latest_date,
+                'prev_sentiment': prev_sentiment
+            }
+        else:
+            raise ValueError(f"No data available for {symbol}")
+    except Exception as e:
+        st.warning(f"Error loading data for {symbol}: {e}")
+        return symbol, {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
+
+@st.cache_data(ttl=300)  # Cache data for 5 minutes
+def load_data(symbols):
+    data = {}
+    fetch_func = partial(fetch_single_stock_data, period="2y")
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_symbol = {executor.submit(fetch_func, symbol): symbol for symbol in symbols}
+        for future in concurrent.futures.as_completed(future_to_symbol):
+            symbol, result = future.result()
+            data[symbol] = result
+    
+    return pd.DataFrame.from_dict(data, orient='index')
+
 def main():
     st.title("Stock Sentiment Oscillator Dashboard")
 
@@ -414,35 +447,7 @@ def main():
 
     symbols = hk_symbols if market == "HK Stock" else us_symbols
 
-    # Load data
-    @st.cache_data(ttl=300)  # Cache data for 5 minutes
-    def load_data(symbols):
-        data = {}
-        for symbol in symbols:
-            try:
-                stock_data = get_stock_data(symbol, period="2y")
-                if not stock_data.empty:
-                    sentiment = calculate_sentiment_oscillator(stock_data)
-                    # Ensure we're using the latest date for both price and sentiment
-                    latest_date = stock_data.index[-1]
-                    latest_sentiment = sentiment.loc[latest_date] if latest_date in sentiment.index else np.nan
-                    prev_sentiment = sentiment.iloc[-2] if len(sentiment) > 1 else np.nan
-                    data[symbol] = {
-                        'sentiment': latest_sentiment,
-                        'last_close': stock_data['Close'].loc[latest_date],
-                        'last_date': latest_date,
-                        'prev_sentiment': prev_sentiment
-                    }
-                else:
-                    raise ValueError(f"No data available for {symbol}")
-            except Exception as e:
-                st.warning(f"Error loading data for {symbol}: {e}")
-                data[symbol] = {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
-        return pd.DataFrame.from_dict(data, orient='index')
-
-    with st.spinner("Loading data..."):
-        sentiment_data = load_data(symbols)
-
+    
     # Sort the sentiment data
     sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
@@ -538,3 +543,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
