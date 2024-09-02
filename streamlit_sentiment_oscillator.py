@@ -413,7 +413,7 @@ def fetch_single_stock_data(symbol, period="2y"):
         st.warning(f"Error loading data for {symbol}: {e}")
         return symbol, {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
 
-#@st.cache_data(ttl=300)
+@st.cache_data(ttl=1200)
 def load_data(symbols):
     data = {}
     fetch_func = partial(fetch_single_stock_data, period="2y")
