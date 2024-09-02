@@ -192,6 +192,7 @@ def calculate_sentiment_oscillator(data):
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
+    value = float(value)  # Ensure value is a float
     value = max(0, min(100, value))
     if value > 50:
         green = int(255 * (value - 50) / 50)
@@ -497,9 +498,13 @@ def main():
                 
                 button_style = f"""
                 <style>
-                div.stButton > button:first-child {{
+                div[data-testid="stButton"] > button:first-child {{
                     background-color: {button_color};
                     color: {text_color};
+                    width: 100px;
+                    height: 60px;
+                    white-space: normal;
+                    word-wrap: break-word;
                 }}
                 </style>
                 """
@@ -507,9 +512,12 @@ def main():
                 
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
+                    st.experimental_rerun()
     
+    # After the button grid
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
+        st.write(f"Clicked symbol: {clicked_symbol}")  # Debug output
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
             with st.spinner(f"Loading chart for {clicked_symbol}..."):
