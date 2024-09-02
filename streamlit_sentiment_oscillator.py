@@ -520,9 +520,17 @@ def main():
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
     # Add a button to refresh the data
+    if 'refresh_key' not in st.session_state:
+        st.session_state.refresh_key = 0
+    
     if st.button("Refresh Data"):
+        # Clear the cache
         st.cache_data.clear()
-        st.experimental_rerun()
+        # Increment the refresh key to trigger a rerun
+        st.session_state.refresh_key += 1
+    
+    # Use the refresh key in a dummy element to trigger the rerun
+    st.empty().text(f"Refresh key: {st.session_state.refresh_key}")
 
     # Footer
     st.markdown("---")
