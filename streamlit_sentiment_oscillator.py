@@ -204,13 +204,14 @@ def get_button_color(value):
         red = int(255 - ((value - 50) / 50) * 255)
         green = 255
         blue = int(255 - ((value - 50) / 50) * 255)
-    return f"rgba({red}, {green}, {blue}, 0.7)"
+    return f"rgb({red}, {green}, {blue})"
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"
     value = float(value)
     return "black" if 25 <= value <= 75 else "white"
+    
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
     one_year_ago = data.index[-1] - pd.DateOffset(years=1)
@@ -460,56 +461,46 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # CSS for tighter button grid
+    # Custom CSS for button grid
     st.markdown("""
     <style>
-    .stButton > button {
+    .button-grid {
+        display: grid;
+        grid-template-columns: repeat(15, 1fr);
+        gap: 5px;
+        margin-bottom: 20px;
+    }
+    .stock-button {
         width: 100%;
         height: 60px;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
+        padding: 5px;
+        text-align: center;
         font-size: 12px;
         line-height: 1.2;
-        margin: 1px;
-    }
-    div.row-widget.stButton {
-        margin: 0px;
-        padding: 0px;
+        border: none;
+        cursor: pointer;
     }
     </style>
     """, unsafe_allow_html=True)
 
     # Button grid
-    num_columns = 15
-    symbols_list = list(sorted_sentiment.iterrows())
+    button_html = "<div class='button-grid'>"
+    for symbol, data in sorted_sentiment.iterrows():
+        sentiment_value = data['sentiment']
+        button_color = get_button_color(sentiment_value)
+        text_color = get_text_color(sentiment_value)
+        display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
+        
+        button_html += f"""
+        <button class='stock-button' 
+                style='background-color: {button_color}; color: {text_color};'
+                onclick="Streamlit.setComponentValue('{symbol}')">
+            {symbol}<br>{display_value}
+        </button>
+        """
+    button_html += "</div>"
 
-    clicked_symbol = None
-
-    for i in range(0, len(symbols_list), num_columns):
-        cols = st.columns(num_columns)
-        for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
-            if j < len(cols):
-                sentiment_value = data['sentiment']
-                button_color = get_button_color(sentiment_value)
-                text_color = get_text_color(sentiment_value)
-                if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
-                    display_value = f'{sentiment_value:.2f}'
-                else:
-                    display_value = 'N/A'
-                
-                button_style = f"""
-                <style>
-                div[data-testid="stButton"] > button:first-child {{
-                    background-color: {button_color} !important;
-                    color: {text_color} !important;
-                }}
-                </style>
-                """
-                st.markdown(button_style, unsafe_allow_html=True)
-                
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                    clicked_symbol = symbol
+    clicked_symbol = st.markdown(button_html, unsafe_allow_html=True)
 
     # Chart rendering
     if clicked_symbol:
