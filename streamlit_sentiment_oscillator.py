@@ -462,7 +462,7 @@ def main():
 
     st.markdown("""
     <style>
-    div.stButton > button:first-child {
+    .custom-button {
         width: 100px;
         height: 60px;
         padding: 5px 2px;
@@ -474,6 +474,9 @@ def main():
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -495,8 +498,37 @@ def main():
                 else:
                     display_value = 'N/A'
                 
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                    st.session_state.clicked_symbol = symbol
+                button_html = f"""
+                <button class="custom-button" style="background-color: {button_color}; color: {text_color};" 
+                        onclick="
+                            if (window.frameElement) {{
+                                parent.postMessage({{
+                                    type: 'streamlit:setComponentValue',
+                                    value: '{symbol}'
+                                }}, '*')
+                            }}
+                        ">
+                    {symbol}<br>{display_value}
+                </button>
+                """
+                cols[j].markdown(button_html, unsafe_allow_html=True)
+
+    # Handle button clicks
+    if st.session_state.get('button_clicked'):
+        clicked_symbol = st.session_state.button_clicked
+        st.session_state.button_clicked = None  # Reset for next click
+        st.session_state.clicked_symbol = clicked_symbol
+
+    # Use Streamlit's JavaScript to detect button clicks
+    st.markdown("""
+    <script>
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'streamlit:setComponentValue') {
+            window.Streamlit.setComponentValue(event.data.value);
+        }
+    });
+    </script>
+    """, unsafe_allow_html=True)
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
