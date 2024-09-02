@@ -194,10 +194,17 @@ def get_button_color(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
     value = float(value)  # Ensure value is a float
     value = max(0, min(100, value))
-    if value > 50:
-        return "rgba(0, 255, 0, 0.2)"  # Light green
+    if value <= 50:
+        # Gradient from light pink to white
+        red = int(255 - (value / 50) * 63)
+        green = int(192 + (value / 50) * 63)
+        blue = int(203 + (value / 50) * 52)
     else:
-        return "rgba(255, 192, 203, 0.2)"  # Light pink
+        # Gradient from white to light green
+        red = int(255 - ((value - 50) / 50) * 255)
+        green = int(255)
+        blue = int(255 - ((value - 50) / 50) * 255)
+    return f"rgb({red}, {green}, {blue})"
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
@@ -453,24 +460,6 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        width: 100px;
-        height: 60px;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 12px;
-        line-height: 1.2;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     grid_container = st.container()
 
     num_columns = 15
@@ -499,6 +488,13 @@ def main():
                     height: 60px;
                     white-space: normal;
                     word-wrap: break-word;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 5px 2px;
                 }}
                 </style>
                 """
@@ -507,6 +503,7 @@ def main():
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     clicked_symbol = symbol
 
+    # Chart rendering - moved immediately after the button grid
     if clicked_symbol:
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
