@@ -449,7 +449,10 @@ def main():
 
     symbols = hk_symbols if market == "HK Stock" else us_symbols
 
-    
+    # Load data
+    with st.spinner("Loading data..."):
+        sentiment_data = load_data(symbols)
+
     # Sort the sentiment data
     sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
@@ -542,8 +545,5 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-if __name__ == "__main__":
-    main()
 
 
