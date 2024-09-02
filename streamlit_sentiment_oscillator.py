@@ -183,7 +183,6 @@ def calculate_sentiment_oscillator(data):
     lr = calculate_linear_regression(data)
     ms = calculate_market_structure(data)
     
-    # Combine all indicators, filling NaN values with the previous valid value
     combined = pd.concat([rsi, stoch, cci, bbp, ma, supertrend, lr, ms], axis=1)
     combined = combined.ffill()
     
@@ -222,7 +221,6 @@ def plot_chart(ticker):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.1, row_heights=[0.7, 0.3])
     
-    # Candlestick chart
     fig.add_trace(go.Candlestick(
         x=data_to_plot.index,
         open=data_to_plot['Open'],
@@ -234,30 +232,25 @@ def plot_chart(ticker):
         decreasing_line_color='red'
     ), row=1, col=1)
     
-    # Calculate EMAs
     ema_20 = calculate_ema(data_to_plot, 20)
     ema_50 = calculate_ema(data_to_plot, 50)
     ema_200 = calculate_ema(data_to_plot, 200)
 
-    # Calculate the position for price annotations
     first_date = data_to_plot.index[0]
     last_date = data_to_plot.index[-1]
     annotation_x = last_date + pd.Timedelta(days=2)
     mid_date = first_date + (last_date - first_date) / 2
 
-    # Add EMA horizontal lines and annotations
     for ema, color, width, name in zip([ema_20, ema_50, ema_200], ['gray', 'gray', 'gray'], [1, 2, 3], ['20 EMA', '50 EMA', '200 EMA']):
         fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=ema.iloc[-1], y1=ema.iloc[-1],
                       line=dict(color=color, width=width, dash="dash"), row=1, col=1)
         fig.add_annotation(x=annotation_x, y=ema.iloc[-1], text=f"{name}: {ema.iloc[-1]:.2f}",
                            showarrow=False, xanchor="left", font=dict(size=10, color=color), row=1, col=1)
 
-    # Add current price annotation
     current_price = data_to_plot['Close'].iloc[-1]
     fig.add_annotation(x=annotation_x, y=current_price, text=f"Current Price: {current_price:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=12, color="black"), row=1, col=1)
 
-    # Calculate and add volume profile
     volume_profile, bin_centers, bin_size, poc_price, value_area_low, value_area_high = calculate_volume_profile(data_to_plot)
     max_volume = volume_profile.max()
     fig.add_trace(go.Bar(
@@ -270,13 +263,11 @@ def plot_chart(ticker):
         xaxis='x2'
     ), row=1, col=1)
 
-    # Add POC line (red)
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=poc_price, y1=poc_price,
                   line=dict(color="red", width=2), row=1, col=1)
     fig.add_annotation(x=annotation_x, y=poc_price, text=f"POC: {poc_price:.2f}",
                        showarrow=False, xanchor="left", font=dict(size=10, color="red"), row=1, col=1)
 
-    # Add Value Area lines (purple) with labels in the middle
     fig.add_shape(type="line", x0=first_date, x1=annotation_x, y0=value_area_low, y1=value_area_low,
                   line=dict(color="purple", width=2), row=1, col=1)
     fig.add_annotation(x=mid_date, y=value_area_low, text=f"VAL: {value_area_low:.2f}",
@@ -289,7 +280,6 @@ def plot_chart(ticker):
                        showarrow=False, xanchor="center", yanchor="bottom", font=dict(size=10, color="purple"),
                        yshift=5, row=1, col=1)
 
-    # Add Sentiment Oscillator
     fig.add_trace(go.Scatter(
         x=sentiment_to_plot.index,
         y=sentiment_to_plot, 
@@ -297,7 +287,6 @@ def plot_chart(ticker):
         name='Sentiment Oscillator'
     ), row=2, col=1)
     
-    # Add filled areas for bullish (blue) and bearish (red) sentiment
     fig.add_traces([
         go.Scatter(
             x=sentiment_to_plot.index,
@@ -337,12 +326,10 @@ def plot_chart(ticker):
         )
     ], rows=[2,2,2,2], cols=[1,1,1,1])
     
-    # Add horizontal lines for sentiment levels
     fig.add_hline(y=75, line_dash="dash", line_color="green", row=2, col=1)
     fig.add_hline(y=50, line_dash="dash", line_color="gray", row=2, col=1)
     fig.add_hline(y=25, line_dash="dash", line_color="red", row=2, col=1)
     
-    # Update layout with adjusted margins and size
     fig.update_layout(
         title=f"{ticker} - Price Chart and Sentiment Oscillator",
         xaxis_title="Date",
@@ -350,7 +337,7 @@ def plot_chart(ticker):
         xaxis_rangeslider_visible=False,
         height=800,
         width=1200,
-        margin=dict(l=50, r=150, t=50, b=50),  # Increased right margin
+        margin=dict(l=50, r=150, t=50, b=50),
         showlegend=False,
         xaxis=dict(
             showline=True,
@@ -380,7 +367,6 @@ def plot_chart(ticker):
     
     return fig
 
-# Define the US and HK symbols
 us_symbols = [
     '^NDX', '^GSPC', 'AAPL', 'MSFT', 'AMZN', 'NVDA', 'GOOG', 'META', 'TSLA', 'JPM',
     'V', 'UNH', 'LLY', 'JNJ', 'XOM', 'WMT', 'MA', 'PG', 'KO', 'HD',
@@ -427,7 +413,7 @@ def fetch_single_stock_data(symbol, period="2y"):
         st.warning(f"Error loading data for {symbol}: {e}")
         return symbol, {'sentiment': np.nan, 'last_close': np.nan, 'last_date': None, 'prev_sentiment': np.nan}
 
-@st.cache_data(ttl=300)  # Cache data for 5 minutes
+@st.cache_data(ttl=300)
 def load_data(symbols):
     data = {}
     fetch_func = partial(fetch_single_stock_data, period="2y")
@@ -443,28 +429,22 @@ def load_data(symbols):
 def main():
     st.title("Stock Sentiment Oscillator Dashboard")
 
-    # Sidebar
     st.sidebar.header("Stock Universe Selection")
     market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
 
     symbols = hk_symbols if market == "HK Stock" else us_symbols
 
-    # Load data
     with st.spinner("Loading data..."):
         sentiment_data = load_data(symbols)
 
-    # Sort the sentiment data
     sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
-    # Calculate buy and sell signals
     buy_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] < 50) & (sorted_sentiment['sentiment'] >= 50)]
     sell_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] >= 50) & (sorted_sentiment['sentiment'] < 50)]
 
-    # Calculate overbought and oversold stocks
     overbought_stocks = sorted_sentiment[sorted_sentiment['sentiment'] > 75]
     oversold_stocks = sorted_sentiment[sorted_sentiment['sentiment'] < 25]
 
-    # Display buy and sell signals
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Stocks with Buy Signal:")
@@ -480,7 +460,6 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # Custom CSS for button styling
     st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -493,10 +472,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # Create a container for the grid
     grid_container = st.container()
 
-    # Display the sorted sentiment data in a grid
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
     
@@ -512,7 +489,6 @@ def main():
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
 
-    # Display the chart for the clicked symbol
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
         st.subheader(f"Detailed Chart for {clicked_symbol}")
@@ -521,7 +497,6 @@ def main():
                 chart = plot_chart(clicked_symbol)
                 st.plotly_chart(chart, use_container_width=True)
                 
-                # Display additional information
                 symbol_data = sentiment_data.loc[clicked_symbol]
                 st.write(f"Last Close: {symbol_data['last_close']:.2f}")
                 st.write(f"Last Date: {symbol_data['last_date']}")
@@ -529,21 +504,17 @@ def main():
         except Exception as e:
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
-    # Add a button to refresh the data
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
     
     if st.button("Refresh Data"):
-        # Clear the cache
         st.cache_data.clear()
-        # Increment the refresh key to trigger a rerun
         st.session_state.refresh_key += 1
     
-    # Use the refresh key in a dummy element to trigger the rerun
     st.empty().text(f"Refresh key: {st.session_state.refresh_key}")
 
-    # Footer
     st.markdown("---")
     st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-
+if __name__ == "__main__":
+    main()
