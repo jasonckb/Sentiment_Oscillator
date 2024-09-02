@@ -462,7 +462,7 @@ def main():
 
     st.markdown("""
     <style>
-    .custom-button {
+    div.stButton > button:first-child {
         width: 100px;
         height: 60px;
         padding: 5px 2px;
@@ -474,15 +474,12 @@ def main():
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
     }
     </style>
     """, unsafe_allow_html=True)
-
+    
     grid_container = st.container()
-
+    
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
     
@@ -498,38 +495,19 @@ def main():
                 else:
                     display_value = 'N/A'
                 
-                button_html = f"""
-                <button class="custom-button" style="background-color: {button_color}; color: {text_color};" 
-                        onclick="
-                            if (window.frameElement) {{
-                                parent.postMessage({{
-                                    type: 'streamlit:setComponentValue',
-                                    value: '{symbol}'
-                                }}, '*')
-                            }}
-                        ">
-                    {symbol}<br>{display_value}
-                </button>
+                button_style = f"""
+                <style>
+                div.stButton > button:first-child {{
+                    background-color: {button_color};
+                    color: {text_color};
+                }}
+                </style>
                 """
-                cols[j].markdown(button_html, unsafe_allow_html=True)
-
-    # Handle button clicks
-    if st.session_state.get('button_clicked'):
-        clicked_symbol = st.session_state.button_clicked
-        st.session_state.button_clicked = None  # Reset for next click
-        st.session_state.clicked_symbol = clicked_symbol
-
-    # Use Streamlit's JavaScript to detect button clicks
-    st.markdown("""
-    <script>
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'streamlit:setComponentValue') {
-            window.Streamlit.setComponentValue(event.data.value);
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
-
+                st.markdown(button_style, unsafe_allow_html=True)
+                
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                    st.session_state.clicked_symbol = symbol
+    
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
         st.subheader(f"Detailed Chart for {clicked_symbol}")
