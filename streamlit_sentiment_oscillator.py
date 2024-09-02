@@ -192,13 +192,19 @@ def calculate_sentiment_oscillator(data):
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
+    value = float(value)  # Ensure value is a float
     value = max(0, min(100, value))
-    if value > 50:
-        green = int(255 * (value - 50) / 50)
-        return f"rgb(0, {green}, 0)"
+    if value < 50:
+        # Light pink to white
+        red = 255
+        green = int(192 + (value / 50) * 63)
+        blue = int(203 + (value / 50) * 52)
     else:
-        red = int(255 * (50 - value) / 50)
-        return f"rgb({red}, 0, 0)"
+        # White to light green
+        red = int(255 - ((value - 50) / 50) * 255)
+        green = 255
+        blue = int(255 - ((value - 50) / 50) * 255)
+    return f"rgba({red}, {green}, {blue}, 0.7)"  # Added some transparency
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
@@ -460,31 +466,14 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        width: 100px;
-        height: 60px;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 12px;
-        line-height: 1.2;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    grid_container = st.container()
-
+    # Button grid
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
-    
+
+    clicked_symbol = None
+
     for i in range(0, len(symbols_list), num_columns):
-        cols = grid_container.columns(num_columns)
+        cols = st.columns(num_columns)
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
                 sentiment_value = data['sentiment']
@@ -495,37 +484,51 @@ def main():
                 else:
                     display_value = 'N/A'
                 
+                button_style = f"""
+                <style>
+                div[data-testid="stButton"] > button:first-child {{
+                    background-color: {button_color};
+                    color: {text_color};
+                    width: 100px;
+                    height: 60px;
+                    white-space: normal;
+                    word-wrap: break-word;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 5px 2px;
+                    margin: 2px;
+                }}
+                </style>
+                """
+                st.markdown(button_style, unsafe_allow_html=True)
+                
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                    st.session_state.clicked_symbol = symbol
+                    clicked_symbol = symbol
 
-    if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
-        clicked_symbol = st.session_state.clicked_symbol
+    # Chart rendering - moved immediately after the button grid
+    if clicked_symbol:
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
-            with st.spinner(f"Loading chart for {clicked_symbol}..."):
-                chart = plot_chart(clicked_symbol)
-                st.plotly_chart(chart, use_container_width=True)
-                
-                symbol_data = sentiment_data.loc[clicked_symbol]
-                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-                st.write(f"Last Date: {symbol_data['last_date']}")
-                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
+            chart = plot_chart(clicked_symbol)
+            st.plotly_chart(chart, use_container_width=True)
+            
+            symbol_data = sentiment_data.loc[clicked_symbol]
+            st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+            st.write(f"Last Date: {symbol_data['last_date']}")
+            st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
-    if 'refresh_key' not in st.session_state:
-        st.session_state.refresh_key = 0
-    
     if st.button("Refresh Data"):
         st.cache_data.clear()
-        st.session_state.refresh_key += 1
-    
-    st.empty().text(f"Refresh key: {st.session_state.refresh_key}")
+        st.experimental_rerun()
 
     st.markdown("---")
     st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     main()
-
-
