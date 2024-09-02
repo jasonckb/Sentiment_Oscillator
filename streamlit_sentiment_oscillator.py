@@ -211,6 +211,12 @@ def get_text_color(value):
         return "white"
     value = float(value)
     return "black" if 25 <= value <= 75 else "white"
+
+def get_text_color(value):
+    if pd.isna(value) or not np.isfinite(value):
+        return "white"
+    value = float(value)
+    return "black" if 25 <= value <= 75 else "white"
     
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
@@ -464,11 +470,10 @@ def main():
     # Custom CSS for button grid
     st.markdown("""
     <style>
-    .button-grid {
-        display: grid;
-        grid-template-columns: repeat(15, 1fr);
-        gap: 5px;
-        margin-bottom: 20px;
+    .stock-button-container {
+        display: inline-block;
+        width: calc(100% / 15 - 4px);
+        margin: 2px;
     }
     .stock-button {
         width: 100%;
@@ -484,23 +489,39 @@ def main():
     """, unsafe_allow_html=True)
 
     # Button grid
-    button_html = "<div class='button-grid'>"
-    for symbol, data in sorted_sentiment.iterrows():
-        sentiment_value = data['sentiment']
-        button_color = get_button_color(sentiment_value)
-        text_color = get_text_color(sentiment_value)
-        display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
-        
-        button_html += f"""
-        <button class='stock-button' 
-                style='background-color: {button_color}; color: {text_color};'
-                onclick="Streamlit.setComponentValue('{symbol}')">
-            {symbol}<br>{display_value}
-        </button>
-        """
-    button_html += "</div>"
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        st.subheader("Stocks with Buy Signal:")
+        st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
+    with col2:
+        st.subheader("Stocks with Sell Signal:")
+        st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
+    with col3:
+        st.subheader("Stocks Overbought:")
+        st.write(", ".join(overbought_stocks.index) if not overbought_stocks.empty else "Nil")
+        st.subheader("Stocks Oversold:")
+        st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    clicked_symbol = st.markdown(button_html, unsafe_allow_html=True)
+    clicked_symbol = None
+    for i in range(0, len(sorted_sentiment), 15):
+        cols = st.columns(15)
+        for j, (symbol, data) in enumerate(sorted_sentiment.iloc[i:i+15].iterrows()):
+            sentiment_value = data['sentiment']
+            button_color = get_button_color(sentiment_value)
+            text_color = get_text_color(sentiment_value)
+            display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
+            
+            if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}", 
+                              help=f"Click to view details for {symbol}"):
+                clicked_symbol = symbol
+
+            cols[j].markdown(f"""
+            <div class="stock-button-container">
+                <button class="stock-button" style="background-color: {button_color}; color: {text_color};">
+                    {symbol}<br>{display_value}
+                </button>
+            </div>
+            """, unsafe_allow_html=True)
 
     # Chart rendering
     if clicked_symbol:
@@ -509,7 +530,7 @@ def main():
             chart = plot_chart(clicked_symbol)
             st.plotly_chart(chart, use_container_width=True)
             
-            symbol_data = sentiment_data.loc[clicked_symbol]
+            symbol_data = sorted_sentiment.loc[clicked_symbol]
             st.write(f"Last Close: {symbol_data['last_close']:.2f}")
             st.write(f"Last Date: {symbol_data['last_date']}")
             st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
