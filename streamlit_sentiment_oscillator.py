@@ -5,6 +5,8 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
+import concurrent.futures
+from functools import partial
 
 # Set page config at the very beginning
 st.set_page_config(layout="wide")
