@@ -211,7 +211,6 @@ def get_text_color(value):
         return "white"
     value = float(value)
     return "black" if 25 <= value <= 75 else "white"
-
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
     one_year_ago = data.index[-1] - pd.DateOffset(years=1)
