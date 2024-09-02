@@ -454,8 +454,9 @@ def main():
     overbought_stocks = sorted_sentiment[sorted_sentiment['sentiment'] > 75]
     oversold_stocks = sorted_sentiment[sorted_sentiment['sentiment'] < 25]
 
-    # Display buy and sell signals
+    # Display signals in two columns
     col1, col2 = st.columns(2)
+    
     with col1:
         st.subheader("Stocks with Buy Signal:")
         st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
@@ -470,19 +471,6 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # Custom CSS for button styling
-    st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        height: auto;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 12px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     # Create a container for the grid
     grid_container = st.container()
 
@@ -495,12 +483,41 @@ def main():
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
                 sentiment_value = data['sentiment']
-                button_color = get_button_color(sentiment_value)
-                text_color = get_text_color(sentiment_value)
                 display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
                 
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                # Determine button color
+                if pd.isna(sentiment_value) or not np.isfinite(sentiment_value):
+                    button_color = "#808080"  # Gray for invalid values
+                elif sentiment_value >= 50:
+                    button_color = "#90EE90"  # Light green
+                else:
+                    button_color = "#FFB6C1"  # Light pink
+                
+                # Create button with inline styling
+                if cols[j].button(
+                    f"{symbol}\n{display_value}",
+                    key=f"btn_{symbol}",
+                    help=f"Sentiment: {display_value}",
+                    use_container_width=True,
+                ):
                     st.session_state.clicked_symbol = symbol
+                
+                # Apply color to the button after it's created
+                st.markdown(
+                    f"""
+                    <style>
+                    div[data-testid="stButton"] > button:first-child[key="btn_{symbol}"] {{
+                        background-color: {button_color} !important;
+                        color: black !important;
+                        border: none !important;
+                        height: auto;
+                        padding: 5px 2px;
+                        font-size: 12px;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     # Display the chart for the clicked symbol
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
