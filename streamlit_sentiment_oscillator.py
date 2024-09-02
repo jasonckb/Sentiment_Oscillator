@@ -204,18 +204,13 @@ def get_button_color(value):
         red = int(255 - ((value - 50) / 50) * 255)
         green = 255
         blue = int(255 - ((value - 50) / 50) * 255)
-    return f"rgba({red}, {green}, {blue}, 0.7)"  # Added some transparency
+    return f"rgba({red}, {green}, {blue}, 0.7)"
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"
-    value = max(0, min(100, value))
-    if value > 75:
-        return "red"
-    elif value < 25:
-        return "blue"
-    else:
-        return "black"
+    value = float(value)
+    return "black" if 25 <= value <= 75 else "white"
 
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
@@ -466,6 +461,26 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
+    # CSS for tighter button grid
+    st.markdown("""
+    <style>
+    .stButton > button {
+        width: 100%;
+        height: 60px;
+        padding: 5px 2px;
+        white-space: normal;
+        word-wrap: break-word;
+        font-size: 12px;
+        line-height: 1.2;
+        margin: 1px;
+    }
+    div.row-widget.stButton {
+        margin: 0px;
+        padding: 0px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # Button grid
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
@@ -487,20 +502,8 @@ def main():
                 button_style = f"""
                 <style>
                 div[data-testid="stButton"] > button:first-child {{
-                    background-color: {button_color};
-                    color: {text_color};
-                    width: 100px;
-                    height: 60px;
-                    white-space: normal;
-                    word-wrap: break-word;
-                    font-size: 12px;
-                    line-height: 1.2;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 5px 2px;
-                    margin: 2px;
+                    background-color: {button_color} !important;
+                    color: {text_color} !important;
                 }}
                 </style>
                 """
@@ -509,7 +512,7 @@ def main():
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     clicked_symbol = symbol
 
-    # Chart rendering - moved immediately after the button grid
+    # Chart rendering
     if clicked_symbol:
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
