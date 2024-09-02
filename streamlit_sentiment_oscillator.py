@@ -463,11 +463,17 @@ def main():
     st.markdown("""
     <style>
     div.stButton > button:first-child {
-        height: auto;
+        width: 100px;
+        height: 60px;
         padding: 5px 2px;
         white-space: normal;
         word-wrap: break-word;
         font-size: 12px;
+        line-height: 1.2;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -486,7 +492,7 @@ def main():
                 text_color = get_text_color(sentiment_value)
                 display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
                 
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                if cols[j].button(f"{symbol}\n{display_value:.2f}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
