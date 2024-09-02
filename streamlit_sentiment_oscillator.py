@@ -192,26 +192,25 @@ def calculate_sentiment_oscillator(data):
 def get_button_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
-    value = float(value)  # Ensure value is a float
     value = max(0, min(100, value))
-    if value < 50:
-        # Light pink to white
-        red = 255
-        green = int(192 + (value / 50) * 63)
-        blue = int(203 + (value / 50) * 52)
+    if value > 50:
+        green = int(255 * (value - 50) / 50)
+        return f"rgb(0, {green}, 0)"
     else:
-        # White to light green
-        red = int(255 - ((value - 50) / 50) * 255)
-        green = 255
-        blue = int(255 - ((value - 50) / 50) * 255)
-    return f"rgb({red}, {green}, {blue})"
+        red = int(255 * (50 - value) / 50)
+        return f"rgb({red}, 0, 0)"
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"
-    value = float(value)
-    return "black" if 25 <= value <= 75 else "white"
-    
+    value = max(0, min(100, value))
+    if value > 75:
+        return "red"
+    elif value < 25:
+        return "blue"
+    else:
+        return "black"
+
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
     one_year_ago = data.index[-1] - pd.DateOffset(years=1)
@@ -461,88 +460,72 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # Custom CSS for button grid
     st.markdown("""
     <style>
-    .stock-button {
-        width: 100%;
+    div.stButton > button:first-child {
+        width: 100px;
         height: 60px;
-        padding: 5px;
-        text-align: center;
+        padding: 5px 2px;
+        white-space: normal;
+        word-wrap: break-word;
         font-size: 12px;
         line-height: 1.2;
-        border: none;
-        margin: 1px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Stocks with Buy Signal:")
-        st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
-        
-        st.subheader("Stocks Overbought:")
-        st.write(", ".join(overbought_stocks.index) if not overbought_stocks.empty else "Nil")
+    grid_container = st.container()
 
-    with col2:
-        st.subheader("Stocks with Sell Signal:")
-        st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
-        
-        st.subheader("Stocks Oversold:")
-        st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
+    num_columns = 15
+    symbols_list = list(sorted_sentiment.iterrows())
+    
+    for i in range(0, len(symbols_list), num_columns):
+        cols = grid_container.columns(num_columns)
+        for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
+            if j < len(cols):
+                sentiment_value = data['sentiment']
+                button_color = get_button_color(sentiment_value)
+                text_color = get_text_color(sentiment_value)
+                if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
+                    display_value = f'{sentiment_value:.2f}'
+                else:
+                    display_value = 'N/A'
+                
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                    st.session_state.clicked_symbol = symbol
 
-    # Button grid
-    clicked_symbol = None
-    for i in range(0, len(sorted_sentiment), 15):
-        cols = st.columns(15)
-        for j, (symbol, data) in enumerate(sorted_sentiment.iloc[i:i+15].iterrows()):
-            sentiment_value = data['sentiment']
-            button_color = get_button_color(sentiment_value)
-            text_color = get_text_color(sentiment_value)
-            display_value = f'{sentiment_value:.2f}' if pd.notna(sentiment_value) and np.isfinite(sentiment_value) else 'N/A'
-            
-            button_style = f"""
-            <style>
-            div[data-testid="stButton"] > button:first-child {{
-                background-color: {button_color};
-                color: {text_color};
-                width: 100%;
-                height: 60px;
-                padding: 5px;
-                text-align: center;
-                font-size: 12px;
-                line-height: 1.2;
-                border: none;
-                margin: 1px;
-            }}
-            </style>
-            """
-            st.markdown(button_style, unsafe_allow_html=True)
-            
-            if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                clicked_symbol = symbol
-
-    # Chart rendering
-    if clicked_symbol:
+    if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
+        clicked_symbol = st.session_state.clicked_symbol
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
-            chart = plot_chart(clicked_symbol)
-            st.plotly_chart(chart, use_container_width=True)
-            
-            symbol_data = sorted_sentiment.loc[clicked_symbol]
-            st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-            st.write(f"Last Date: {symbol_data['last_date']}")
-            st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
+            with st.spinner(f"Loading chart for {clicked_symbol}..."):
+                chart = plot_chart(clicked_symbol)
+                st.plotly_chart(chart, use_container_width=True)
+                
+                symbol_data = sentiment_data.loc[clicked_symbol]
+                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                st.write(f"Last Date: {symbol_data['last_date']}")
+                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
+    if 'refresh_key' not in st.session_state:
+        st.session_state.refresh_key = 0
+    
     if st.button("Refresh Data"):
         st.cache_data.clear()
-        st.experimental_rerun()
+        st.session_state.refresh_key += 1
+    
+    st.empty().text(f"Refresh key: {st.session_state.refresh_key}")
 
     st.markdown("---")
     st.markdown("Data provided by Yahoo Finance. Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 if __name__ == "__main__":
     main()
+
+
