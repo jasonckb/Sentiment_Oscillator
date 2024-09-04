@@ -54,6 +54,8 @@ def calculate_sentiment_oscillator(data):
     sentiment = (rsi + stoch + cci + bbp + ma + supertrend + lr + ms) / 8
     return sentiment.rolling(window=3).mean()
 
+# 在這裡添加您的其他函數，如 calculate_rsi, calculate_stochastic 等
+
 # UI 組件
 def render_stock_grid(sorted_sentiment):
     st.markdown("""
