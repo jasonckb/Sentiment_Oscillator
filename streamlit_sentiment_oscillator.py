@@ -461,7 +461,39 @@ def main():
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
     def main():
-    
+    st.title("Stock Sentiment Oscillator Dashboard")
+
+    st.sidebar.header("Stock Universe Selection")
+    market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
+
+    symbols = hk_symbols if market == "HK Stock" else us_symbols
+
+    with st.spinner("Loading data..."):
+        sentiment_data = load_data(symbols)
+
+    sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
+
+    buy_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] < 50) & (sorted_sentiment['sentiment'] >= 50)]
+    sell_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] >= 50) & (sorted_sentiment['sentiment'] < 50)]
+
+    overbought_stocks = sorted_sentiment[sorted_sentiment['sentiment'] > 75]
+    oversold_stocks = sorted_sentiment[sorted_sentiment['sentiment'] < 25]
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Stocks with Buy Signal:")
+        st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
+        
+        st.subheader("Stocks Overbought:")
+        st.write(", ".join(overbought_stocks.index) if not overbought_stocks.empty else "Nil")
+
+    with col2:
+        st.subheader("Stocks with Sell Signal:")
+        st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
+        
+        st.subheader("Stocks Oversold:")
+        st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
+
     st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -521,33 +553,31 @@ def main():
                 """
                 cols[j].markdown(button_html, unsafe_allow_html=True)
 
-    # 添加一個隱藏的表單來處理按鈕點擊
+    # Add a hidden form to handle button clicks
     st.markdown("""
     <form method="post" action="">
         <input type="hidden" name="clicked_symbol" value="">
     </form>
     """, unsafe_allow_html=True)
 
-    # 處理按鈕點擊
+    # Handle button clicks
     if 'clicked_symbol' in st.experimental_get_query_params():
         st.session_state.clicked_symbol = st.experimental_get_query_params()['clicked_symbol'][0]
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
         clicked_symbol = st.session_state.clicked_symbol
-        st.subheader(f"詳細圖表 {clicked_symbol}")
+        st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
-            with st.spinner(f"正在加載 {clicked_symbol} 的圖表..."):
+            with st.spinner(f"Loading chart for {clicked_symbol}..."):
                 chart = plot_chart(clicked_symbol)
                 st.plotly_chart(chart, use_container_width=True)
                 
                 symbol_data = sentiment_data.loc[clicked_symbol]
-                st.write(f"最後收盤價: {symbol_data['last_close']:.2f}")
-                st.write(f"最後日期: {symbol_data['last_date']}")
-                st.write(f"當前情緒指標: {symbol_data['sentiment']:.2f}")
+                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                st.write(f"Last Date: {symbol_data['last_date']}")
+                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
-            st.error(f"生成 {clicked_symbol} 圖表時出錯: {str(e)}")
-
-    # ... (後面的代碼保持不變)
+            st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
