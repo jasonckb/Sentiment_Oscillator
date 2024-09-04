@@ -499,7 +499,7 @@ def main():
                 
                 button_style = f"""
                 <style>
-                div.stButton > button:nth-child({i*num_columns+j+1}) {{
+                div.stButton > button#btn_{symbol} {{
                     background-color: {button_color} !important;
                     color: {text_color} !important;
                     border: none !important;
@@ -511,19 +511,23 @@ def main():
                 if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     clicked_symbol = symbol
 
+    # 使用 st.empty() 創建一個佔位符
+    chart_placeholder = st.empty()
+
     if clicked_symbol:
-        st.subheader(f"Detailed Chart for {clicked_symbol}")
-        try:
-            with st.spinner(f"Loading chart for {clicked_symbol}..."):
-                chart = plot_chart(clicked_symbol)
-                st.plotly_chart(chart, use_container_width=True)
-                
-                symbol_data = sentiment_data.loc[clicked_symbol]
-                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-                st.write(f"Last Date: {symbol_data['last_date']}")
-                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
-        except Exception as e:
-            st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+        with chart_placeholder.container():
+            st.subheader(f"Detailed Chart for {clicked_symbol}")
+            try:
+                with st.spinner(f"Loading chart for {clicked_symbol}..."):
+                    chart = plot_chart(clicked_symbol)
+                    st.plotly_chart(chart, use_container_width=True)
+                    
+                    symbol_data = sentiment_data.loc[clicked_symbol]
+                    st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                    st.write(f"Last Date: {symbol_data['last_date']}")
+                    st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
+            except Exception as e:
+                st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
