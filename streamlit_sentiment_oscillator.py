@@ -462,10 +462,11 @@ def main():
 
     st.markdown("""
     <style>
-    .stButton > button {
+    .stock-button {
         width: 100px;
         height: 60px;
         padding: 5px 2px;
+        margin: 2px;
         white-space: normal;
         word-wrap: break-word;
         font-size: 12px;
@@ -474,60 +475,59 @@ def main():
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        cursor: pointer;
+        border: none;
+    }
+    .stock-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    grid_container = st.container()
+    # 創建一個隱藏的表單來處理按鈕點擊
+    st.markdown("""
+    <form id="stock-form" method="post">
+        <input type="hidden" id="clicked-stock" name="clicked_stock" value="">
+    </form>
+    """, unsafe_allow_html=True)
 
-    num_columns = 15
-    symbols_list = list(sorted_sentiment.iterrows())
-    
-    clicked_symbol = None
-    
-    for i in range(0, len(symbols_list), num_columns):
-        cols = grid_container.columns(num_columns)
-        for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
-            if j < len(cols):
-                sentiment_value = data['sentiment']
-                button_color = get_button_color(sentiment_value)
-                text_color = get_text_color(sentiment_value)
-                if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
-                    display_value = f'{sentiment_value:.2f}'
-                else:
-                    display_value = 'N/A'
+    grid_html = '<div class="stock-grid">'
+    for symbol, data in sorted_sentiment.iterrows():
+        sentiment_value = data['sentiment']
+        button_color = get_button_color(sentiment_value)
+        text_color = get_text_color(sentiment_value)
+        if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
+            display_value = f'{sentiment_value:.2f}'
+        else:
+            display_value = 'N/A'
+        
+        grid_html += f"""
+        <button class="stock-button" style="background-color: {button_color}; color: {text_color};"
+                onclick="document.getElementById('clicked-stock').value='{symbol}'; document.getElementById('stock-form').submit();">
+            {symbol}<br>{display_value}
+        </button>
+        """
+    grid_html += '</div>'
+
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+    # 處理按鈕點擊
+    if 'clicked_stock' in st.experimental_get_query_params():
+        clicked_symbol = st.experimental_get_query_params()['clicked_stock'][0]
+        st.subheader(f"Detailed Chart for {clicked_symbol}")
+        try:
+            with st.spinner(f"Loading chart for {clicked_symbol}..."):
+                chart = plot_chart(clicked_symbol)
+                st.plotly_chart(chart, use_container_width=True)
                 
-                button_style = f"""
-                <style>
-                div.stButton > button#btn_{symbol} {{
-                    background-color: {button_color} !important;
-                    color: {text_color} !important;
-                    border: none !important;
-                }}
-                </style>
-                """
-                st.markdown(button_style, unsafe_allow_html=True)
-                
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
-                    clicked_symbol = symbol
-
-    # 使用 st.empty() 創建一個佔位符
-    chart_placeholder = st.empty()
-
-    if clicked_symbol:
-        with chart_placeholder.container():
-            st.subheader(f"Detailed Chart for {clicked_symbol}")
-            try:
-                with st.spinner(f"Loading chart for {clicked_symbol}..."):
-                    chart = plot_chart(clicked_symbol)
-                    st.plotly_chart(chart, use_container_width=True)
-                    
-                    symbol_data = sentiment_data.loc[clicked_symbol]
-                    st.write(f"Last Close: {symbol_data['last_close']:.2f}")
-                    st.write(f"Last Date: {symbol_data['last_date']}")
-                    st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
-            except Exception as e:
-                st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+                symbol_data = sentiment_data.loc[clicked_symbol]
+                st.write(f"Last Close: {symbol_data['last_close']:.2f}")
+                st.write(f"Last Date: {symbol_data['last_date']}")
+                st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
+        except Exception as e:
+            st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
