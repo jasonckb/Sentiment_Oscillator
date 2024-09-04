@@ -460,40 +460,6 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    def main():
-    st.title("Stock Sentiment Oscillator Dashboard")
-
-    st.sidebar.header("Stock Universe Selection")
-    market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
-
-    symbols = hk_symbols if market == "HK Stock" else us_symbols
-
-    with st.spinner("Loading data..."):
-        sentiment_data = load_data(symbols)
-
-    sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
-
-    buy_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] < 50) & (sorted_sentiment['sentiment'] >= 50)]
-    sell_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] >= 50) & (sorted_sentiment['sentiment'] < 50)]
-
-    overbought_stocks = sorted_sentiment[sorted_sentiment['sentiment'] > 75]
-    oversold_stocks = sorted_sentiment[sorted_sentiment['sentiment'] < 25]
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Stocks with Buy Signal:")
-        st.write(", ".join(buy_signals.index) if not buy_signals.empty else "Nil")
-        
-        st.subheader("Stocks Overbought:")
-        st.write(", ".join(overbought_stocks.index) if not overbought_stocks.empty else "Nil")
-
-    with col2:
-        st.subheader("Stocks with Sell Signal:")
-        st.write(", ".join(sell_signals.index) if not sell_signals.empty else "Nil")
-        
-        st.subheader("Stocks Oversold:")
-        st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
-
     st.markdown("""
     <style>
     div.stButton > button:first-child {
