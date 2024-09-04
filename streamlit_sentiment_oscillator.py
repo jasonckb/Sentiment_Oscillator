@@ -426,9 +426,12 @@ def load_data(symbols):
     
     return pd.DataFrame.from_dict(data, orient='index')
 
+import streamlit as st
+
+# 將頁面配置移到文件的最開始
+st.set_page_config(layout="wide")
+
 def main():
-    st.set_page_config(layout="wide")
-    
     st.title("Stock Sentiment Oscillator Dashboard")
 
     # 側邊欄
