@@ -500,14 +500,15 @@ def main():
                 button_style = f"""
                 <style>
                 div.stButton > button:nth-child({i*num_columns+j+1}) {{
-                    background-color: {button_color};
-                    color: {text_color};
+                    background-color: {button_color} !important;
+                    color: {text_color} !important;
+                    border: none !important;
                 }}
                 </style>
                 """
                 st.markdown(button_style, unsafe_allow_html=True)
                 
-                if cols[j].button(f"{symbol}\n{display_value}"):
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     clicked_symbol = symbol
 
     if clicked_symbol:
