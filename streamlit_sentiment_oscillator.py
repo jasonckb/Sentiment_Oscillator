@@ -7,6 +7,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import concurrent.futures
 from functools import partial
+import config
 
 # Set page config at the very beginning
 st.set_page_config(layout="wide")
@@ -430,6 +431,8 @@ import streamlit as st
 
 # 將頁面配置移到文件的最開始
 st.set_page_config(layout="wide")
+
+# 其他導入語句...
 
 def main():
     st.title("Stock Sentiment Oscillator Dashboard")
