@@ -462,7 +462,7 @@ def main():
 
     st.markdown("""
     <style>
-    div.stButton > button:first-child {
+    .stButton > button {
         width: 100px;
         height: 60px;
         padding: 5px 2px;
@@ -474,21 +474,6 @@ def main():
         flex-direction: column;
         justify-content: center;
         align-items: center;
-    }
-    .sentiment-button {
-        width: 100px;
-        height: 60px;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 12px;
-        line-height: 1.2;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border: none;
-        cursor: pointer;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -497,6 +482,8 @@ def main():
 
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
+    
+    clicked_symbol = None
     
     for i in range(0, len(symbols_list), num_columns):
         cols = grid_container.columns(num_columns)
@@ -510,28 +497,20 @@ def main():
                 else:
                     display_value = 'N/A'
                 
-                button_html = f"""
-                <button class="sentiment-button" 
-                        style="background-color: {button_color}; color: {text_color};"
-                        onclick="this.form.clicked_symbol.value='{symbol}'; this.form.submit();">
-                    {symbol}<br>{display_value}
-                </button>
+                button_style = f"""
+                <style>
+                div.stButton > button:nth-child({i*num_columns+j+1}) {{
+                    background-color: {button_color};
+                    color: {text_color};
+                }}
+                </style>
                 """
-                cols[j].markdown(button_html, unsafe_allow_html=True)
+                st.markdown(button_style, unsafe_allow_html=True)
+                
+                if cols[j].button(f"{symbol}\n{display_value}"):
+                    clicked_symbol = symbol
 
-    # Add a hidden form to handle button clicks
-    st.markdown("""
-    <form method="post" action="">
-        <input type="hidden" name="clicked_symbol" value="">
-    </form>
-    """, unsafe_allow_html=True)
-
-    # Handle button clicks
-    if 'clicked_symbol' in st.experimental_get_query_params():
-        st.session_state.clicked_symbol = st.experimental_get_query_params()['clicked_symbol'][0]
-
-    if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
-        clicked_symbol = st.session_state.clicked_symbol
+    if clicked_symbol:
         st.subheader(f"Detailed Chart for {clicked_symbol}")
         try:
             with st.spinner(f"Loading chart for {clicked_symbol}..."):
