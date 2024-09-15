@@ -460,20 +460,6 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        width: 100px;
-        height: 60px;
-        padding: 5px 2px;
-        white-space: normal;
-        word-wrap: break-word;
-        font-size: 12px;
-        line-height: 1.2;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     grid_container = st.container()
 
     num_columns = 15
@@ -502,9 +488,17 @@ def main():
                 
                 button_style = f"""
                     <style>
-                    div.stButton > button:first-child {{
-                        background-color: {background_color};
-                        color: {text_color};
+                    div.stButton > button#btn_{symbol} {{
+                        background-color: {background_color} !important;
+                        color: {text_color} !important;
+                        border: none !important;
+                        width: 100px;
+                        height: 60px;
+                        padding: 5px 2px;
+                        white-space: normal;
+                        word-wrap: break-word;
+                        font-size: 12px;
+                        line-height: 1.2;
                     }}
                     </style>
                 """
