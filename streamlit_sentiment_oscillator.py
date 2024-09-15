@@ -467,6 +467,9 @@ def main():
         width: 100%;
         cursor: pointer;
     }
+    .hidden-button {
+        display: none;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -498,13 +501,13 @@ def main():
                 
                 button_html = f"""
                 <div class="stock-button" style="background-color: {background_color}; color: {text_color};" 
-                     onclick="document.dispatchEvent(new CustomEvent('streamlit:click', {{detail: {{id: 'btn_{symbol}'}}}}))">
+                     onclick="document.getElementById('btn_{symbol}').click()">
                     {symbol}<br>{display_value}
                 </div>
                 """
                 cols[j].markdown(button_html, unsafe_allow_html=True)
                 
-                if cols[j].button("", key=f"btn_{symbol}", style="display: none;"):
+                if cols[j].button("", key=f"btn_{symbol}", help=f"Click to view details for {symbol}"):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
