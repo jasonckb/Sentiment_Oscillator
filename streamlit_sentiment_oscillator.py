@@ -477,7 +477,7 @@ def main():
     }
     .clickable-area {
         background-color: #d0d0d0;
-        height: 10px;
+        height: 5px;
         width: 100%;
         border-radius: 0 0 4px 4px;
         cursor: pointer;
