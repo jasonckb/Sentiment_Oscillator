@@ -11,6 +11,16 @@ from functools import partial
 # Set page config at the very beginning
 st.set_page_config(layout="wide")
 
+def get_portfolio_stocks():
+    url = "https://raw.githubusercontent.com/jasonckb/RRG_Jason/main/Existing%20Portfolio.txt"
+    response = requests.get(url)
+    if response.status_code == 200:
+        stocks = [line.strip() for line in response.text.split('\n') if line.strip()]
+        return stocks
+    else:
+        st.error(f"Failed to fetch portfolio stocks. Status code: {response.status_code}")
+        return []
+
 def get_stock_data(ticker, period="2y"):
     stock = yf.Ticker(ticker)
     data = stock.history(period=period)
@@ -538,6 +548,52 @@ def main():
                 st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
         except Exception as e:
             st.error(f"Error generating chart for {clicked_symbol}: {str(e)}")
+
+    st.markdown("---")
+    st.subheader("Existing Portfolio")
+
+    # Load the existing portfolio stocks dynamically
+    existing_portfolio = get_portfolio_stocks()
+
+    # Filter sentiment data for existing portfolio stocks
+    portfolio_sentiment = sentiment_data[sentiment_data.index.isin(existing_portfolio)]
+
+    # Create a grid for the existing portfolio
+    portfolio_grid = st.container()
+    portfolio_columns = 6  # Adjust this number as needed
+
+    for i in range(0, len(existing_portfolio), portfolio_columns):
+        cols = portfolio_grid.columns(portfolio_columns)
+        for j, symbol in enumerate(existing_portfolio[i:i+portfolio_columns]):
+            if j < len(cols):
+                if symbol in portfolio_sentiment.index:
+                    data = portfolio_sentiment.loc[symbol]
+                    sentiment_value = data['sentiment']
+                    background_color = get_button_color(sentiment_value)
+                    text_color = get_text_color(sentiment_value)
+                    
+                    if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
+                        display_value = f'{sentiment_value:.2f}'
+                    else:
+                        display_value = 'N/A'
+                else:
+                    background_color = "rgb(128, 128, 128)"  # Gray for stocks not in sentiment data
+                    text_color = "white"
+                    display_value = 'N/A'
+                
+                button_html = f"""
+                <div class="stock-container">
+                    <div class="stock-info" style="background-color: {background_color}; color: {text_color};">
+                        <div>{symbol}</div>
+                        <div>{display_value}</div>
+                    </div>
+                    <div class="clickable-area" onclick="document.getElementById('btn_portfolio_{symbol}').click()"></div>
+                </div>
+                """
+                cols[j].markdown(button_html, unsafe_allow_html=True)
+                
+                if cols[j].button("", key=f"btn_portfolio_{symbol}", help=f"Click to view details for {symbol}"):
+                    st.session_state.clicked_symbol = symbol
 
     if 'refresh_key' not in st.session_state:
         st.session_state.refresh_key = 0
