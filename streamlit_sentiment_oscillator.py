@@ -11,14 +11,21 @@ from functools import partial
 # Set page config at the very beginning
 st.set_page_config(layout="wide")
 
+import requests
+import streamlit as st
+
 def get_portfolio_stocks():
-    url = "https://raw.githubusercontent.com/jasonckb/RRG_Jason/main/Existing%20Portfolio.txt"
-    response = requests.get(url)
-    if response.status_code == 200:
-        stocks = [line.strip() for line in response.text.split('\n') if line.strip()]
-        return stocks
-    else:
-        st.error(f"Failed to fetch portfolio stocks. Status code: {response.status_code}")
+    url = "https://raw.githubusercontent.com/jasonckb/Sentiment_Oscillator/main/Existing%20Portfolio"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            stocks = [line.strip() for line in response.text.split('\n') if line.strip()]
+            return stocks
+        else:
+            st.error(f"Failed to fetch portfolio stocks. Status code: {response.status_code}")
+            return []
+    except Exception as e:
+        st.error(f"Error fetching portfolio stocks: {str(e)}")
         return []
 
 def get_stock_data(ticker, period="2y"):
