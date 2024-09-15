@@ -454,18 +454,18 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
-    # Apply global button styling
     st.markdown("""
     <style>
-    div.stButton > button:first-child {
-        width: 100%;
-        height: 60px;
-        white-space: normal;
-        word-wrap: break-word;
+    .stock-button {
+        display: inline-block;
         padding: 5px;
+        margin: 2px;
+        border-radius: 5px;
+        text-align: center;
         font-size: 12px;
         line-height: 1.2;
-        margin: 1px;
+        width: 100%;
+        cursor: pointer;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -496,17 +496,15 @@ def main():
                     text_color = "black"
                     background_color = "rgb(128, 128, 128)"  # Gray for invalid values
                 
-                button_style = f"""
-                    <style>
-                    div.stButton > button#btn_{symbol} {{
-                        background-color: {background_color} !important;
-                        color: {text_color} !important;
-                        border: 1px solid rgba(49, 51, 63, 0.2) !important;
-                    }}
-                    </style>
+                button_html = f"""
+                <div class="stock-button" style="background-color: {background_color}; color: {text_color};" 
+                     onclick="document.dispatchEvent(new CustomEvent('streamlit:click', {{detail: {{id: 'btn_{symbol}'}}}}))">
+                    {symbol}<br>{display_value}
+                </div>
                 """
-                cols[j].markdown(button_style, unsafe_allow_html=True)
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                cols[j].markdown(button_html, unsafe_allow_html=True)
+                
+                if cols[j].button("", key=f"btn_{symbol}", style="display: none;"):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
