@@ -457,13 +457,17 @@ def main():
     st.markdown("""
     <style>
     .stock-button {
-        display: inline-block;
-        padding: 5px;
-        margin: 2px;
-        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2px;
+        margin: 1px;
+        border-radius: 4px;
         text-align: center;
-        font-size: 12px;
-        line-height: 1.2;
+        font-size: 11px;
+        line-height: 1.1;
+        height: 40px;
         width: 100%;
         cursor: pointer;
     }
@@ -502,7 +506,8 @@ def main():
                 button_html = f"""
                 <div class="stock-button" style="background-color: {background_color}; color: {text_color};" 
                      onclick="document.getElementById('btn_{symbol}').click()">
-                    {symbol}<br>{display_value}
+                    <div>{symbol}</div>
+                    <div>{display_value}</div>
                 </div>
                 """
                 cols[j].markdown(button_html, unsafe_allow_html=True)
