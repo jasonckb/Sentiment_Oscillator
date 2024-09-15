@@ -459,7 +459,7 @@ def main():
     .stock-container {
         display: flex;
         flex-direction: column;
-        width: 100%;
+        align-items: center;
         margin: 1px;
     }
     .stock-info {
@@ -476,10 +476,9 @@ def main():
         width: 100%;
     }
     .clickable-area {
-        background-color: #d0d0d0;
-        height: 5px;
+        background-color: #808080;
+        height: 2.5px;
         width: 100%;
-        border-radius: 0 0 4px 4px;
         cursor: pointer;
     }
     .hidden-button {
