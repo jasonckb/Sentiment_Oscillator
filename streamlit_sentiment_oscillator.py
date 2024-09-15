@@ -460,6 +460,20 @@ def main():
         st.subheader("Stocks Oversold:")
         st.write(", ".join(oversold_stocks.index) if not oversold_stocks.empty else "Nil")
 
+    st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        width: 100px;
+        height: 60px;
+        padding: 5px 2px;
+        white-space: normal;
+        word-wrap: break-word;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     grid_container = st.container()
 
     num_columns = 15
@@ -486,23 +500,16 @@ def main():
                     text_color = "black"
                     background_color = "rgb(128, 128, 128)"  # Gray for invalid values
                 
-                button_html = f"""
-                    <button style="
+                button_style = f"""
+                    <style>
+                    div.stButton > button:first-child {{
                         background-color: {background_color};
                         color: {text_color};
-                        width: 100px;
-                        height: 60px;
-                        padding: 5px 2px;
-                        white-space: normal;
-                        word-wrap: break-word;
-                        font-size: 12px;
-                        line-height: 1.2;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                    ">{symbol}<br>{display_value}</button>
+                    }}
+                    </style>
                 """
-                if cols[j].markdown(button_html, unsafe_allow_html=True):
+                cols[j].markdown(button_style, unsafe_allow_html=True)
+                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
