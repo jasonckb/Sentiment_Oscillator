@@ -478,7 +478,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    grid_container = st.container()
+     grid_container = st.container()
 
     num_columns = 15
     symbols_list = list(sorted_sentiment.iterrows())
@@ -488,17 +488,25 @@ def main():
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
                 sentiment_value = data['sentiment']
-                button_color = get_button_color(sentiment_value)
-                text_color = get_text_color(sentiment_value)
                 if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
                     display_value = f'{sentiment_value:.2f}'
+                    
+                    if sentiment_value > 75:
+                        text_color = "red"
+                    elif sentiment_value < 25:
+                        text_color = "blue"
+                    else:
+                        text_color = "black"
+                    
+                    background_color = "rgb(144, 238, 144)" if sentiment_value > 50 else "rgb(255, 182, 193)"
                 else:
                     display_value = 'N/A'
+                    text_color = "black"
+                    background_color = "rgb(128, 128, 128)"  # Gray for invalid values
                 
-                button_style = f"""
-                    <style>
-                    div.stButton > button:first-child {{
-                        background-color: {button_color};
+                button_html = f"""
+                    <button style="
+                        background-color: {background_color};
                         color: {text_color};
                         width: 100px;
                         height: 60px;
@@ -507,11 +515,12 @@ def main():
                         word-wrap: break-word;
                         font-size: 12px;
                         line-height: 1.2;
-                    }}
-                    </style>
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    ">{symbol}<br>{display_value}</button>
                 """
-                cols[j].markdown(button_style, unsafe_allow_html=True)
-                if cols[j].button(f"{symbol}\n{display_value}", key=f"btn_{symbol}"):
+                if cols[j].markdown(button_html, unsafe_allow_html=True):
                     st.session_state.clicked_symbol = symbol
 
     if 'clicked_symbol' in st.session_state and st.session_state.clicked_symbol:
