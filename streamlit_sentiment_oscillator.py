@@ -194,20 +194,24 @@ def get_button_color(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
     value = max(0, min(100, value))
     if value > 50:
-        green = int(102 + (153 * (value - 50) / 50))  # 102 to 255
-        return f"rgb(0, {green}, 0)"
+        # Dark green (0,102,0) to light green (144,238,144)
+        green = int(102 + (136 * (100 - value) / 50))
+        red = int(144 * (100 - value) / 50)
+        blue = int(144 * (100 - value) / 50)
+        return f"rgb({red}, {green}, {blue})"
     else:
-        red = int(204 + (51 * (50 - value) / 50))  # 204 to 255
-        return f"rgb({red}, 0, 0)"
+        # Light red (255,182,193) to dark red (204,0,0)
+        red = int(255 - (51 * (50 - value) / 50))
+        green = int(182 * value / 50)
+        blue = int(193 * value / 50)
+        return f"rgb({red}, {green}, {blue})"
 
 def get_text_color(value):
     if pd.isna(value) or not np.isfinite(value):
         return "white"
     value = max(0, min(100, value))
-    if value > 75:
-        return "red"
-    elif value < 25:
-        return "blue"
+    if value > 75 or value < 25:
+        return "white"  # White text for extreme values for better readability
     else:
         return "black"
 
