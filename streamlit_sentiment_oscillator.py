@@ -498,21 +498,13 @@ def main():
         for j, (symbol, data) in enumerate(symbols_list[i:i+num_columns]):
             if j < len(cols):
                 sentiment_value = data['sentiment']
+                background_color = get_button_color(sentiment_value)
+                text_color = get_text_color(sentiment_value)
+                
                 if pd.notna(sentiment_value) and np.isfinite(sentiment_value):
                     display_value = f'{sentiment_value:.2f}'
-                    
-                    if sentiment_value > 75:
-                        text_color = "red"
-                    elif sentiment_value < 25:
-                        text_color = "blue"
-                    else:
-                        text_color = "black"
-                    
-                    background_color = "rgb(144, 238, 144)" if sentiment_value > 50 else "rgb(255, 182, 193)"
                 else:
                     display_value = 'N/A'
-                    text_color = "black"
-                    background_color = "rgb(128, 128, 128)"  # Gray for invalid values
                 
                 button_html = f"""
                 <div class="stock-container">
