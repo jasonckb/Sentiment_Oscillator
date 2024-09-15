@@ -453,11 +453,16 @@ def main():
     st.sidebar.header("Stock Universe Selection")
     market = st.sidebar.radio("Select Market", ["HK Stock", "US Stock"])
 
-    symbols = hk_symbols if market == "HK Stock" else us_symbols
-
+    # Load data for both markets
     with st.spinner("Loading data..."):
-        sentiment_data = load_data(symbols)
+        hk_sentiment_data = load_data(hk_symbols)
+        us_sentiment_data = load_data(us_symbols)
 
+    # Combine the sentiment data
+    all_sentiment_data = pd.concat([hk_sentiment_data, us_sentiment_data])
+
+    # Select the appropriate data for the main dashboard
+    sentiment_data = hk_sentiment_data if market == "HK Stock" else us_sentiment_data
     sorted_sentiment = sentiment_data.sort_values('sentiment', ascending=False)
 
     buy_signals = sorted_sentiment[(sorted_sentiment['prev_sentiment'] < 50) & (sorted_sentiment['sentiment'] >= 50)]
@@ -549,7 +554,7 @@ def main():
                 chart = plot_chart(clicked_symbol)
                 st.plotly_chart(chart, use_container_width=True)
                 
-                symbol_data = sentiment_data.loc[clicked_symbol]
+                symbol_data = all_sentiment_data.loc[clicked_symbol]
                 st.write(f"Last Close: {symbol_data['last_close']:.2f}")
                 st.write(f"Last Date: {symbol_data['last_date']}")
                 st.write(f"Current Sentiment: {symbol_data['sentiment']:.2f}")
@@ -562,8 +567,8 @@ def main():
     # Load the existing portfolio stocks dynamically
     existing_portfolio = get_portfolio_stocks()
 
-    # Filter sentiment data for existing portfolio stocks
-    portfolio_sentiment = sentiment_data[sentiment_data.index.isin(existing_portfolio)]
+    # Filter sentiment data for existing portfolio stocks using all_sentiment_data
+    portfolio_sentiment = all_sentiment_data[all_sentiment_data.index.isin(existing_portfolio)]
 
     # Create a grid for the existing portfolio
     portfolio_grid = st.container()
