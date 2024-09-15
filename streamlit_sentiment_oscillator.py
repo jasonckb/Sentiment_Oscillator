@@ -456,33 +456,31 @@ def main():
 
     st.markdown("""
     <style>
-    .stock-button {
+    .stock-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        margin: 1px;
+    }
+    .stock-info {
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        padding: 2px;
-        margin: 1px;
-        border-radius: 4px;
+        padding: 5px 2px;
+        border-radius: 4px 4px 0 0;
         text-align: center;
-        font-size: 10px;
-        line-height: 1.1;
-        height: 50px;
-        width: 50px;
+        font-size: 12px;
+        line-height: 1.2;
+        height: 60px;
+        width: 100%;
+    }
+    .clickable-area {
+        background-color: #d0d0d0;
+        height: 10px;
+        width: 100%;
+        border-radius: 0 0 4px 4px;
         cursor: pointer;
-        background-color: #f0f0f0;
-        border: 1px solid #d0d0d0;
-        transition: all 0.3s ease;
-    }
-    .stock-button:hover {
-        box-shadow: 0 0 5px rgba(0,0,0,0.2);
-    }
-    .stock-symbol {
-        font-weight: bold;
-        margin-bottom: 2px;
-    }
-    .stock-value {
-        opacity: 0.8;
     }
     .hidden-button {
         display: none;
@@ -504,24 +502,25 @@ def main():
                     display_value = f'{sentiment_value:.2f}'
                     
                     if sentiment_value > 75:
-                        text_color = "darkred"
+                        text_color = "red"
                     elif sentiment_value < 25:
-                        text_color = "darkblue"
-                    elif sentiment_value > 50:
-                        text_color = "darkgreen"
-                    elif sentiment_value < 50:
-                        text_color = "purple"
+                        text_color = "blue"
                     else:
                         text_color = "black"
+                    
+                    background_color = "rgb(144, 238, 144)" if sentiment_value > 50 else "rgb(255, 182, 193)"
                 else:
                     display_value = 'N/A'
-                    text_color = "gray"
+                    text_color = "black"
+                    background_color = "rgb(128, 128, 128)"  # Gray for invalid values
                 
                 button_html = f"""
-                <div class="stock-button" style="color: {text_color};" 
-                     onclick="document.getElementById('btn_{symbol}').click()">
-                    <div class="stock-symbol">{symbol}</div>
-                    <div class="stock-value">{display_value}</div>
+                <div class="stock-container">
+                    <div class="stock-info" style="background-color: {background_color}; color: {text_color};">
+                        <div>{symbol}</div>
+                        <div>{display_value}</div>
+                    </div>
+                    <div class="clickable-area" onclick="document.getElementById('btn_{symbol}').click()"></div>
                 </div>
                 """
                 cols[j].markdown(button_html, unsafe_allow_html=True)
