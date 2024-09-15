@@ -15,7 +15,7 @@ import requests
 import streamlit as st
 
 def get_portfolio_stocks():
-    url = "https://github.com/jasonckb/Sentiment_Oscillator/blob/main/Existing%20Portfolio"
+    url = "https://raw.githubusercontent.com/jasonckb/Sentiment_Oscillator/main/Existing%20Portfolio"
     try:
         response = requests.get(url)
         if response.status_code == 200:
