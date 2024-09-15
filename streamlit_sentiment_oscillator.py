@@ -465,11 +465,24 @@ def main():
         margin: 1px;
         border-radius: 4px;
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
         line-height: 1.1;
-        height: 40px;
-        width: 100%;
+        height: 50px;
+        width: 50px;
         cursor: pointer;
+        background-color: #f0f0f0;
+        border: 1px solid #d0d0d0;
+        transition: all 0.3s ease;
+    }
+    .stock-button:hover {
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    .stock-symbol {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+    .stock-value {
+        opacity: 0.8;
     }
     .hidden-button {
         display: none;
@@ -491,23 +504,24 @@ def main():
                     display_value = f'{sentiment_value:.2f}'
                     
                     if sentiment_value > 75:
-                        text_color = "red"
+                        text_color = "darkred"
                     elif sentiment_value < 25:
-                        text_color = "blue"
+                        text_color = "darkblue"
+                    elif sentiment_value > 50:
+                        text_color = "darkgreen"
+                    elif sentiment_value < 50:
+                        text_color = "purple"
                     else:
                         text_color = "black"
-                    
-                    background_color = "rgb(144, 238, 144)" if sentiment_value > 50 else "rgb(255, 182, 193)"
                 else:
                     display_value = 'N/A'
-                    text_color = "black"
-                    background_color = "rgb(128, 128, 128)"  # Gray for invalid values
+                    text_color = "gray"
                 
                 button_html = f"""
-                <div class="stock-button" style="background-color: {background_color}; color: {text_color};" 
+                <div class="stock-button" style="color: {text_color};" 
                      onclick="document.getElementById('btn_{symbol}').click()">
-                    <div>{symbol}</div>
-                    <div>{display_value}</div>
+                    <div class="stock-symbol">{symbol}</div>
+                    <div class="stock-value">{display_value}</div>
                 </div>
                 """
                 cols[j].markdown(button_html, unsafe_allow_html=True)
