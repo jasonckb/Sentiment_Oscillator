@@ -461,6 +461,7 @@ def main():
         flex-direction: column;
         align-items: center;
         margin: 1px;
+        width: 100%;
     }
     .stock-info {
         display: flex;
@@ -477,7 +478,7 @@ def main():
     }
     .clickable-area {
         background-color: #808080;
-        height: 2.5px;
+        height: 3px;
         width: 100%;
         cursor: pointer;
     }
