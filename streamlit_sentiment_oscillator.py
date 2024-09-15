@@ -194,10 +194,10 @@ def get_button_color(value):
         return "rgb(128, 128, 128)"  # Gray for invalid values
     value = max(0, min(100, value))
     if value > 50:
-        green = int(255 * (value - 50) / 50)
+        green = int(102 * (value - 50) / 50)
         return f"rgb(0, {green}, 0)"
     else:
-        red = int(255 * (50 - value) / 50)
+        red = int(204 * (50 - value) / 50)
         return f"rgb({red}, 0, 0)"
 
 def get_text_color(value):
@@ -209,7 +209,7 @@ def get_text_color(value):
     elif value < 25:
         return "blue"
     else:
-        return "black"
+        return "gray"
 
 def plot_chart(ticker):
     data = get_stock_data(ticker, period="2y")
